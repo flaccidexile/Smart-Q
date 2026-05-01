@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import axiosInstance from '../../api/axiosInstance';
-import Navbar from '../../components/common/Navbar';
+import SmartQLogo from '../../components/common/SmartQLogo';
+import useAuth from '../../hooks/useAuth';
 
 export default function UserManagement() {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
   const [users, setUsers]     = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch]   = useState('');
@@ -21,7 +24,29 @@ export default function UserManagement() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar />
+      <div className="sys-header flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link to="/admin" aria-label="Back to dashboard">
+            <SmartQLogo height={56} />
+          </Link>
+          <div className="h-8 w-px bg-burgundy-700 mx-2" />
+          <span className="text-white font-bold text-lg tracking-wider uppercase font-sans hidden sm:block">
+            USER MANAGEMENT
+          </span>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="text-right hidden sm:block">
+            <p className="text-cream-200 font-bold text-sm leading-tight">{user?.name || 'System Administrator'}</p>
+            <p className="text-cream-400 text-xs">{user?.role === 'admin' ? 'Administrator' : 'Admin Portal'}</p>
+          </div>
+          <button 
+            onClick={() => { logout(); navigate('/login'); }}
+            className="bg-cream-200 hover:bg-cream-300 text-burgundy-900 font-bold py-2 px-6 rounded-md shadow transition text-sm"
+          >
+            Sign Out
+          </button>
+        </div>
+      </div>
 
       <div className="split-window flex-1">
         {/* ── LEFT PANEL ──────────────────────────────────────────────────── */}
@@ -58,9 +83,7 @@ export default function UserManagement() {
           </div>
 
           <div className="mt-auto pt-6 border-t border-burgundy-700">
-            <Link to="/">
-              <button className="panel-btn-sub w-full">← Back to Site</button>
-            </Link>
+            <button onClick={() => { logout(); navigate('/login'); }} className="panel-btn mt-3 text-center w-full">Sign Out</button>
           </div>
         </aside>
 

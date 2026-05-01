@@ -35,10 +35,9 @@ export default function ReportsPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-panel-right">
-      {/* ── Custom Header ──────────────────────────────────────────────────── */}
       <div className="sys-header flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link to="/" aria-label="Back to home">
+          <Link to="/admin" aria-label="Back to dashboard">
             <SmartQLogo height={56} />
           </Link>
           <div className="h-8 w-px bg-burgundy-700 mx-2" />
@@ -46,12 +45,18 @@ export default function ReportsPage() {
             SYSTEM REPORTS
           </span>
         </div>
-        <Link 
-          to="/" 
-          className="bg-cream-200 hover:bg-cream-300 text-burgundy-900 font-bold py-2 px-6 rounded-md shadow transition text-base"
-        >
-          ← Back to Home
-        </Link>
+        <div className="flex items-center gap-4">
+          <div className="text-right hidden sm:block">
+            <p className="text-cream-200 font-bold text-sm leading-tight">{user?.name || 'System Administrator'}</p>
+            <p className="text-cream-400 text-xs">{user?.role === 'admin' ? 'Administrator' : 'Admin Portal'}</p>
+          </div>
+          <button 
+            onClick={() => { logout(); navigate('/login'); }}
+            className="bg-cream-200 hover:bg-cream-300 text-burgundy-900 font-bold py-2 px-6 rounded-md shadow transition text-sm"
+          >
+            Sign Out
+          </button>
+        </div>
       </div>
 
       <div className="split-window flex-1">
@@ -72,6 +77,9 @@ export default function ReportsPage() {
             </Link>
             <Link to="/admin/requests" className="block">
               <button className="w-full text-left font-medium rounded-md transition-all duration-150 select-none text-cream-100 hover:bg-burgundy-800" style={{ fontSize: '15px', padding: '14px 18px' }}>📋 Verify Requests</button>
+            </Link>
+            <Link to="/admin/mass-intentions" className="block">
+              <button className="w-full text-left font-medium rounded-md transition-all duration-150 select-none text-cream-100 hover:bg-burgundy-800" style={{ fontSize: '15px', padding: '14px 18px' }}>✝ Mass Intentions</button>
             </Link>
             <Link to="/admin/calendar" className="block">
               <button className="w-full text-left font-medium rounded-md transition-all duration-150 select-none text-cream-100 hover:bg-burgundy-800" style={{ fontSize: '15px', padding: '14px 18px' }}>📅 Manage Calendar</button>
@@ -137,14 +145,14 @@ export default function ReportsPage() {
                            const heightPercent = (d.value / maxVal) * 100;
                            
                            return (
-                             <div key={i} className="flex-1 flex flex-col items-center group relative h-full">
+                             <div key={i} className="flex-1 flex flex-col items-center justify-end group relative h-full">
                                 <div className="bg-burgundy-700 w-12 rounded-t-md hover:bg-burgundy-600 transition-all duration-300 relative shadow-md"
                                      style={{ height: `${heightPercent}%` }}>
                                     <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-burgundy-900 text-white text-xs font-bold px-2.5 py-1.5 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-200 z-30 whitespace-nowrap">
                                        {d.value} Requests
                                     </span>
                                 </div>
-                                <p className="text-gray-500 font-bold text-[11px] absolute -bottom-8 uppercase tracking-tighter">{d.label}</p>
+                                <p className="text-gray-500 font-bold text-[11px] mt-2 uppercase tracking-tighter">{d.label}</p>
                              </div>
                            )
                          })}

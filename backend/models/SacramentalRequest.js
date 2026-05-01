@@ -52,6 +52,10 @@ const SacramentalRequest = sequelize.define('SacramentalRequest', {
     type: DataTypes.TIME,
     allowNull: true,
   },
+  conflictResolved: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
   // userId is added via association (nullable for kiosk/guest)
 }, {
   tableName: 'sacramental_requests',

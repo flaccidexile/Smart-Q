@@ -1,6 +1,7 @@
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import Navbar from '../components/common/Navbar';
 import SmartQLogo from '../components/common/SmartQLogo';
+import useAuth from '../hooks/useAuth';
 
 const features = [
   { icon: '📋', title: 'Online Request Form',    desc: 'Submit baptismal, confirmation, and other sacramental record requests anytime, anywhere.' },
@@ -19,6 +20,12 @@ const steps = [
 ];
 
 export default function LandingPage() {
+  const { isAdmin } = useAuth();
+
+  if (isAdmin) {
+    return <Navigate to="/admin" replace />;
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -53,6 +60,11 @@ export default function LandingPage() {
             <Link to="/kiosk" id="landing-btn-kiosk">
               <button className="panel-btn" style={{ fontSize: '14px', padding: '14px 18px' }}>Walk-In Kiosk</button>
             </Link>
+            <Link to="/mass-intention" id="landing-btn-mass-intention">
+              <button className="panel-btn" style={{ fontSize: '14px', padding: '14px 18px' }}>
+                ✝ Request Mass Intention
+              </button>
+            </Link>
           </div>
 
           {/* Stats */}
@@ -73,21 +85,36 @@ export default function LandingPage() {
         <main className="panel-right flex justify-center">
           <div className="panel-right-content w-full max-w-5xl animate-slide-up">
 
-            {/* Section header */}
-            <h1 className="right-section-title text-3xl mb-8">Schedule of Masses:</h1>
+            {/* Schedule of Masses Card */}
+            <div className="bg-white rounded-2xl shadow-sm border-t-8 border-t-burgundy-900 p-12 mb-14 text-center max-w-4xl mx-auto">
+              <h2 className="font-head text-3xl font-bold tracking-widest uppercase text-burgundy-900 mb-10">
+                Schedule of Masses
+              </h2>
 
-            <div className="mb-14 space-y-6 text-burgundy-900">
-              <div>
-                <p className="font-head text-2xl font-semibold tracking-wide uppercase">Mondays to Saturdays:</p>
-                <p className="text-4xl font-bold text-burgundy-700 ml-6 mt-1">6:00 AM &amp; 6:00 PM</p>
-              </div>
-              <div>
-                <p className="font-head text-2xl font-semibold tracking-wide uppercase mt-6">Sundays:</p>
-                <p className="text-4xl font-bold text-burgundy-700 ml-6 mt-2 leading-snug">
-                  6:00 AM, 8:00 AM,<br />
-                  10:00 AM, 3:00 PM,<br />
-                  4:30 PM, and 6:00 PM
-                </p>
+              <div className="space-y-10">
+                <div>
+                  <p className="font-head text-2xl font-semibold tracking-wide uppercase text-burgundy-900 mb-3">
+                    Mondays to Saturdays:
+                  </p>
+                  <p className="text-4xl font-bold text-burgundy-700">
+                    6:00 AM &amp; 6:00 PM
+                  </p>
+                </div>
+
+                <div className="flex justify-center">
+                  <div className="w-24 border-t-2 border-cream-300"></div>
+                </div>
+
+                <div>
+                  <p className="font-head text-2xl font-semibold tracking-wide uppercase text-burgundy-900 mb-5">
+                    Sundays:
+                  </p>
+                  <p className="text-4xl font-bold text-burgundy-700 leading-snug">
+                    6:00 AM, 8:00 AM,<br />
+                    10:00 AM, 3:00 PM,<br />
+                    4:30 PM, and 6:00 PM
+                  </p>
+                </div>
               </div>
             </div>
 

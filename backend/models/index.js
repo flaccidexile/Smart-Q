@@ -3,6 +3,7 @@ const User = require('./User');
 const SacramentalRequest = require('./SacramentalRequest');
 const Document = require('./Document');
 const AuditLog = require('./AuditLog');
+const BlockedDate = require('./BlockedDate');
 
 // Associations
 User.hasMany(SacramentalRequest, { foreignKey: 'userId', as: 'requests', onDelete: 'CASCADE' });
@@ -14,4 +15,4 @@ Document.belongsTo(SacramentalRequest, { foreignKey: 'requestId', as: 'request' 
 User.hasMany(AuditLog, { foreignKey: 'adminId', as: 'auditLogs', onDelete: 'CASCADE' });
 AuditLog.belongsTo(User, { foreignKey: 'adminId', as: 'admin' });
 
-module.exports = { sequelize, User, SacramentalRequest, Document, AuditLog };
+module.exports = { sequelize, User, SacramentalRequest, Document, AuditLog, BlockedDate };

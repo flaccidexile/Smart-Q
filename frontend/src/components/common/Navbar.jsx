@@ -30,33 +30,26 @@ export default function Navbar() {
       {/* ── Spacer ─────────────────────────────────────────────── */}
       <div className="flex-1" />
 
-      {/* ── Desktop Nav ────────────────────────────────────────── */}
       <nav className="hidden md:flex items-center gap-5" aria-label="Main navigation">
-        <Link
-          to="/"
-          className={isActive('/') ? 'nav-link-active' : 'nav-link'}
-        >
-          Home
-        </Link>
-
+        {/* Home: goes to / for everyone else */}
+        {!isAdmin && (
+          <Link
+            to="/"
+            className={isActive('/') ? 'nav-link-active' : 'nav-link'}
+          >
+            Home
+          </Link>
+        )}
 
         {user ? (
           <>
             {isAdmin ? (
-              <>
-                <Link
-                  to="/admin"
-                  className={isActive('/admin') ? 'nav-link-active' : 'nav-link'}
-                >
-                  Admin Panel
-                </Link>
-                <Link
-                  to="/track"
-                  className={isActive('/track') ? 'nav-link-active' : 'nav-link'}
-                >
-                  🔍 Track ID
-                </Link>
-              </>
+              <Link
+                to="/admin"
+                className={isActive('/admin') ? 'nav-link-active' : 'nav-link'}
+              >
+                Admin Panel
+              </Link>
             ) : (
               <Link
                 to="/dashboard"
@@ -109,17 +102,18 @@ export default function Navbar() {
       {/* ── Mobile Dropdown ────────────────────────────────────── */}
       {menuOpen && (
         <div className="absolute top-[80px] left-0 right-0 bg-burgundy-900 border-b-2 border-cream-700 px-6 py-5 space-y-3 z-50 md:hidden animate-fade-in shadow-lg">
-          <Link to="/"      className="block nav-link py-1.5" onClick={() => setMenuOpen(false)}>Home</Link>
+          {!isAdmin && (
+            <Link
+              to="/"
+              className="block nav-link py-1.5"
+              onClick={() => setMenuOpen(false)}
+            >Home</Link>
+          )}
 
           {user ? (
             <>
               {isAdmin
-                ? (
-                  <>
-                    <Link to="/admin" className="block nav-link py-1.5" onClick={() => setMenuOpen(false)}>Admin Panel</Link>
-                    <Link to="/track" className="block nav-link py-1.5" onClick={() => setMenuOpen(false)}>🔍 Track ID</Link>
-                  </>
-                )
+                ? <Link to="/admin" className="block nav-link py-1.5" onClick={() => setMenuOpen(false)}>Admin Panel</Link>
                 : <Link to="/dashboard" className="block nav-link py-1.5" onClick={() => setMenuOpen(false)}>My Requests</Link>}
               <button onClick={handleLogout} className="btn-secondary w-full text-sm mt-2">Logout</button>
             </>

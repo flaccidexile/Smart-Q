@@ -1,4 +1,4 @@
-const { SacramentalRequest, Document, User, AuditLog } = require('../models');
+const { SacramentalRequest, Document, User, AuditLog, BlockedDate } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/db');
 
@@ -197,8 +197,13 @@ const getCalendarAppointments = async (req, res, next) => {
   try {
     const appointments = await SacramentalRequest.findAll({
       where: { appointmentDate: { [Op.not]: null } },
-      attributes: ['id', 'appointmentDate', 'appointmentTime', 'certificateType', 'source', 'status'],
+      attributes: ['id', 'appointmentDate', 'appointmentTime', 'certificateType', 'source', 'status', 'conflictResolved'],
     });
+
+    const blockedDatesData = await BlockedDate.findAll({
+      attributes: ['date']
+    });
+    const blockedDates = blockedDatesData.map(b => b.date);
 
     // Format them for the calendar
     // Detect conflicts (same date, same time, different requests)
@@ -213,7 +218,8 @@ const getCalendarAppointments = async (req, res, next) => {
 
     appointments.forEach(a => {
       const key = `${a.appointmentDate}-${a.appointmentTime}`;
-      const conflict = timeMap[key].length > 1;
+      // Conflict exists if > 1 request at the exact same time, AND it's not manually marked as resolved
+      const conflict = timeMap[key].length > 1 && !a.conflictResolved;
 
       formatted.push({
         id: a.id,
@@ -226,10 +232,48 @@ const getCalendarAppointments = async (req, res, next) => {
       });
     });
 
-    res.json({ appointments: formatted });
+    res.json({ appointments: formatted, blockedDates });
   } catch (error) {
     next(error);
   }
 };
 
-module.exports = { getAllRequests, updateRequestStatus, deleteRequest, getAllUsers, getStats, getReports, getCalendarAppointments };
+// POST /api/admin/calendar/block
+const toggleBlockDate = async (req, res, next) => {
+  try {
+    const { date } = req.body;
+    if (!date) return res.status(400).json({ message: 'Date is required.' });
+
+    const existing = await BlockedDate.findOne({ where: { date } });
+    if (existing) {
+      await existing.destroy();
+      res.json({ message: 'Date unblocked successfully.', blocked: false, date });
+    } else {
+      await BlockedDate.create({ date });
+      res.json({ message: 'Date blocked successfully.', blocked: true, date });
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+// POST /api/admin/calendar/resolve
+const resolveConflicts = async (req, res, next) => {
+  try {
+    const { ids, resolve } = req.body; // resolve is boolean
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: 'An array of request IDs is required.' });
+    }
+
+    await SacramentalRequest.update(
+      { conflictResolved: resolve },
+      { where: { id: { [Op.in]: ids } } }
+    );
+
+    res.json({ message: `Conflicts ${resolve ? 'resolved' : 'unresolved'} successfully.` });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { getAllRequests, updateRequestStatus, deleteRequest, getAllUsers, getStats, getReports, getCalendarAppointments, toggleBlockDate, resolveConflicts };

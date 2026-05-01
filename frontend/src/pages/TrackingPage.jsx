@@ -1,12 +1,15 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import axiosInstance from '../api/axiosInstance';
-import Navbar from '../components/common/Navbar';
+import SmartQLogo from '../components/common/SmartQLogo';
 import StatusBadge from '../components/admin/StatusBadge';
+import useAuth from '../hooks/useAuth';
 
 const PROGRESS_STEPS = ['Pending', 'Processing', 'Approved', 'Released'];
 
 export default function TrackingPage() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [requestId, setRequestId] = useState('');
   const [result, setResult]       = useState(null);
   const [error, setError]         = useState('');
@@ -30,7 +33,29 @@ export default function TrackingPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar />
+      <div className="sys-header flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link to="/admin" aria-label="Back to dashboard">
+            <SmartQLogo height={56} />
+          </Link>
+          <div className="h-8 w-px bg-burgundy-700 mx-2" />
+          <span className="text-white font-bold text-lg tracking-wider uppercase font-sans hidden sm:block">
+            TRACK REQUEST
+          </span>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="text-right hidden sm:block">
+            <p className="text-cream-200 font-bold text-sm leading-tight">{user?.name || 'System Administrator'}</p>
+            <p className="text-cream-400 text-xs">{user?.role === 'admin' ? 'Administrator' : 'Admin Portal'}</p>
+          </div>
+          <button 
+            onClick={() => { logout(); navigate('/login'); }}
+            className="bg-cream-200 hover:bg-cream-300 text-burgundy-900 font-bold py-2 px-6 rounded-md shadow transition text-sm"
+          >
+            Sign Out
+          </button>
+        </div>
+      </div>
 
       <div className="split-window flex-1">
         {/* LEFT PANEL */}
@@ -48,19 +73,31 @@ export default function TrackingPage() {
             </p>
           </div>
 
-          {/* Quick tip */}
-          <div className="bg-burgundy-800/60 rounded-xl p-5 text-sm text-cream-300 leading-relaxed shadow-sm">
-            <p className="font-semibold text-cream-200 mb-2 text-base">Where is my Request ID?</p>
-            <p>Your ID was shown on screen and sent to your email when you submitted your request.</p>
+          {/* Admin Navigation */}
+          <div className="space-y-2 mt-4">
+            <p className="text-cream-400 text-xs uppercase tracking-widest mb-4 font-bold">Navigation</p>
+            <Link to="/admin" className="block">
+              <button className="w-full text-left font-medium rounded-md transition-all duration-150 select-none text-cream-100 hover:bg-burgundy-800" style={{ fontSize: '15px', padding: '14px 18px' }}>📊 Dashboard</button>
+            </Link>
+            <Link to="/admin/requests" className="block">
+              <button className="w-full text-left font-medium rounded-md transition-all duration-150 select-none text-cream-100 hover:bg-burgundy-800" style={{ fontSize: '15px', padding: '14px 18px' }}>📋 Verify Requests</button>
+            </Link>
+            <Link to="/admin/mass-intentions" className="block">
+              <button className="w-full text-left font-medium rounded-md transition-all duration-150 select-none text-cream-100 hover:bg-burgundy-800" style={{ fontSize: '15px', padding: '14px 18px' }}>✝ Mass Intentions</button>
+            </Link>
+            <Link to="/admin/calendar" className="block">
+              <button className="w-full text-left font-medium rounded-md transition-all duration-150 select-none text-cream-100 hover:bg-burgundy-800" style={{ fontSize: '15px', padding: '14px 18px' }}>📅 Manage Calendar</button>
+            </Link>
+            <Link to="/admin/reports" className="block">
+              <button className="w-full text-left font-medium rounded-md transition-all duration-150 select-none text-cream-100 hover:bg-burgundy-800" style={{ fontSize: '15px', padding: '14px 18px' }}>📈 System Reports</button>
+            </Link>
+            <Link to="/track" className="block">
+              <button className="w-full text-left font-medium rounded-md transition-all duration-150 select-none bg-cream-400 text-burgundy-900 shadow-sm border border-cream-500" style={{ fontSize: '15px', padding: '14px 18px' }}>🔍 Track ID</button>
+            </Link>
           </div>
 
           <div className="mt-auto pt-8 border-t border-burgundy-700 space-y-3">
-            <Link to="/register">
-              <button className="panel-btn w-full" style={{ fontSize: '14px', padding: '14px 18px' }}>Submit a New Request</button>
-            </Link>
-            <Link to="/">
-              <button className="panel-btn-sub w-full" style={{ fontSize: '14px', padding: '14px 18px' }}>Back to Home</button>
-            </Link>
+            <button onClick={() => { logout(); navigate('/login'); }} className="panel-btn mt-3 text-center w-full">Sign Out</button>
           </div>
         </aside>
 

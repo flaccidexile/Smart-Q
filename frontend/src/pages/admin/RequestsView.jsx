@@ -3,11 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import axiosInstance from '../../api/axiosInstance';
 import SmartQLogo from '../../components/common/SmartQLogo';
 import StatusBadge from '../../components/admin/StatusBadge';
+import useAuth from '../../hooks/useAuth';
 
 const STATUSES   = ['Pending', 'Processing', 'Approved', 'Released', 'Rejected'];
 const CERT_TYPES = ['Baptismal', 'Confirmation', 'Marriage', 'Death'];
 
 export default function RequestsView() {
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [requests, setRequests]     = useState([]);
   const [loading, setLoading]       = useState(true);
@@ -54,10 +56,9 @@ export default function RequestsView() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* ── Custom Header ──────────────────────────────────────────────────── */}
       <div className="sys-header flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link to="/" aria-label="Back to home">
+          <Link to="/admin" aria-label="Back to dashboard">
             <SmartQLogo height={56} />
           </Link>
           <div className="h-8 w-px bg-burgundy-700 mx-2" />
@@ -65,12 +66,18 @@ export default function RequestsView() {
             MANAGE ALL REQUESTS
           </span>
         </div>
-        <Link 
-          to="/" 
-          className="bg-cream-200 hover:bg-cream-300 text-burgundy-900 font-bold py-2 px-6 rounded-md shadow transition text-base"
-        >
-          ← Back to Home
-        </Link>
+        <div className="flex items-center gap-4">
+          <div className="text-right hidden sm:block">
+            <p className="text-cream-200 font-bold text-sm leading-tight">{user?.name || 'System Administrator'}</p>
+            <p className="text-cream-400 text-xs">{user?.role === 'admin' ? 'Administrator' : 'Admin Portal'}</p>
+          </div>
+          <button 
+            onClick={() => { logout(); navigate('/login'); }}
+            className="bg-cream-200 hover:bg-cream-300 text-burgundy-900 font-bold py-2 px-6 rounded-md shadow transition text-sm"
+          >
+            Sign Out
+          </button>
+        </div>
       </div>
 
       <div className="split-window flex-1">
@@ -91,6 +98,9 @@ export default function RequestsView() {
             </Link>
             <Link to="/admin/requests" className="block">
               <button className="w-full text-left font-medium rounded-md transition-all duration-150 select-none bg-cream-400 text-burgundy-900 shadow-sm border border-cream-500" style={{ fontSize: '15px', padding: '14px 18px' }}>📋 Verify Requests</button>
+            </Link>
+            <Link to="/admin/mass-intentions" className="block">
+              <button className="w-full text-left font-medium rounded-md transition-all duration-150 select-none text-cream-100 hover:bg-burgundy-800" style={{ fontSize: '15px', padding: '14px 18px' }}>✝ Mass Intentions</button>
             </Link>
             <Link to="/admin/calendar" className="block">
               <button className="w-full text-left font-medium rounded-md transition-all duration-150 select-none text-cream-100 hover:bg-burgundy-800" style={{ fontSize: '15px', padding: '14px 18px' }}>📅 Manage Calendar</button>

@@ -9,7 +9,9 @@ const {
   getAllUsers,
   getStats,
   getReports,
-  getCalendarAppointments
+  getCalendarAppointments,
+  toggleBlockDate,
+  resolveConflicts
 } = require('../controllers/adminController');
 
 // All admin routes require authentication + admin role
@@ -22,5 +24,7 @@ router.delete('/requests/:id', deleteRequest);
 router.get('/users', getAllUsers);
 router.get('/reports', getReports);
 router.get('/calendar', getCalendarAppointments);
+router.post('/calendar/block', toggleBlockDate);
+router.post('/calendar/resolve', resolveConflicts);
 
 module.exports = router;
