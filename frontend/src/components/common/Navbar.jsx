@@ -1,99 +1,136 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 import { useState } from 'react';
+import SmartQLogo from './SmartQLogo';
 
 export default function Navbar() {
   const { user, logout, isAdmin } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const navigate  = useNavigate();
+  const location  = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
+  const handleLogout = () => { logout(); navigate('/login'); };
   const isActive = (path) => location.pathname === path;
 
   return (
-    <nav className="sticky top-0 z-50 bg-navy-900/80 backdrop-blur border-b border-slate-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center shadow-lg shadow-brand-500/30 group-hover:shadow-brand-500/50 transition-shadow">
-              <span className="text-navy-900 font-bold text-sm">SQ</span>
-            </div>
-            <span className="font-display font-bold text-white text-lg">
-              SMART <span className="text-brand-400">Q</span>
-            </span>
-          </Link>
+    <header className="sys-header" id="site-header">
+      {/* ── Logo ───────────────────────────────────────────────── */}
+      <Link to="/" className="flex items-center gap-3 shrink-0" aria-label="SMARTQ Home">
+        <SmartQLogo height={56} />
+      </Link>
 
-          {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-6">
-            <Link to="/"      className={isActive('/')      ? 'nav-link-active' : 'nav-link'}>Home</Link>
-            <Link to="/track" className={isActive('/track') ? 'nav-link-active' : 'nav-link'}>Track Request</Link>
+      {/* ── Divider ────────────────────────────────────────────── */}
+      <div className="h-8 w-px bg-burgundy-700 mx-1" aria-hidden="true" />
 
-            {user ? (
+      {/* ── System title ───────────────────────────────────────── */}
+      <span className="sys-header-title hidden sm:block">
+        Sacramental Records Request System
+      </span>
+
+      {/* ── Spacer ─────────────────────────────────────────────── */}
+      <div className="flex-1" />
+
+      {/* ── Desktop Nav ────────────────────────────────────────── */}
+      <nav className="hidden md:flex items-center gap-5" aria-label="Main navigation">
+        <Link
+          to="/"
+          className={isActive('/') ? 'nav-link-active' : 'nav-link'}
+        >
+          Home
+        </Link>
+
+
+        {user ? (
+          <>
+            {isAdmin ? (
               <>
-                {isAdmin ? (
-                  <Link to="/admin" className={isActive('/admin') ? 'nav-link-active' : 'nav-link'}>Admin Panel</Link>
-                ) : (
-                  <Link to="/dashboard" className={isActive('/dashboard') ? 'nav-link-active' : 'nav-link'}>My Requests</Link>
-                )}
-                <div className="flex items-center gap-3">
-                  <span className="text-sm text-slate-400">
-                    {user.name.split(' ')[0]}
-                    {isAdmin && <span className="ml-1.5 badge badge-approved">Admin</span>}
+                <Link
+                  to="/admin"
+                  className={isActive('/admin') ? 'nav-link-active' : 'nav-link'}
+                >
+                  Admin Panel
+                </Link>
+                <Link
+                  to="/track"
+                  className={isActive('/track') ? 'nav-link-active' : 'nav-link'}
+                >
+                  🔍 Track ID
+                </Link>
+              </>
+            ) : (
+              <Link
+                to="/dashboard"
+                className={isActive('/dashboard') ? 'nav-link-active' : 'nav-link'}
+              >
+                My Requests
+              </Link>
+            )}
+
+            <div className="flex items-center gap-3 ml-2">
+              <span className="text-cream-400 text-base font-bold">
+                {user.name.split(' ')[0]}
+                {isAdmin && (
+                  <span className="ml-1.5 badge bg-cream-700/30 text-cream-200 border-cream-600/40 text-[10px]">
+                    Admin
                   </span>
-                  <button onClick={handleLogout} className="btn-secondary !py-2 !px-4 text-sm">
-                    Logout
-                  </button>
-                </div>
-              </>
-            ) : (
-              <div className="flex items-center gap-3">
-                <Link to="/login"    className="btn-secondary !py-2 !px-4 text-sm">Login</Link>
-                <Link to="/register" className="btn-primary  !py-2 !px-4 text-sm">Register</Link>
-              </div>
-            )}
-          </div>
-
-          {/* Mobile Menu Toggle */}
-          <button
-            className="md:hidden text-slate-400 hover:text-white"
-            onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="Toggle menu"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              {menuOpen
-                ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />}
-            </svg>
-          </button>
-        </div>
-
-        {/* Mobile Menu */}
-        {menuOpen && (
-          <div className="md:hidden border-t border-slate-800 py-4 space-y-3 animate-fade-in">
-            <Link to="/"      className="block nav-link py-2" onClick={() => setMenuOpen(false)}>Home</Link>
-            <Link to="/track" className="block nav-link py-2" onClick={() => setMenuOpen(false)}>Track Request</Link>
-            {user ? (
-              <>
-                {isAdmin
-                  ? <Link to="/admin" className="block nav-link py-2" onClick={() => setMenuOpen(false)}>Admin Panel</Link>
-                  : <Link to="/dashboard" className="block nav-link py-2" onClick={() => setMenuOpen(false)}>My Requests</Link>}
-                <button onClick={handleLogout} className="btn-secondary w-full text-sm">Logout</button>
-              </>
-            ) : (
-              <div className="flex flex-col gap-2 pt-2">
-                <Link to="/login"    className="btn-secondary text-center text-sm" onClick={() => setMenuOpen(false)}>Login</Link>
-                <Link to="/register" className="btn-primary  text-center text-sm" onClick={() => setMenuOpen(false)}>Register</Link>
-              </div>
-            )}
+                )}
+              </span>
+              <button
+                onClick={handleLogout}
+                className="btn-secondary !py-2 !px-6 text-sm"
+                id="header-logout-btn"
+              >
+                Logout
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="flex items-center gap-3 ml-2">
+            <Link to="/login"    className="btn-secondary !py-2 !px-6 text-sm" id="header-login-btn">Login</Link>
+            <Link to="/register" className="btn-primary  !py-2 !px-6 text-sm" id="header-register-btn">Register</Link>
           </div>
         )}
-      </div>
-    </nav>
+      </nav>
+
+      {/* ── Mobile Toggle ──────────────────────────────────────── */}
+      <button
+        className="md:hidden text-cream-300 hover:text-cream-100 ml-3"
+        onClick={() => setMenuOpen(!menuOpen)}
+        aria-label="Toggle menu"
+        aria-expanded={menuOpen}
+      >
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          {menuOpen
+            ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />}
+        </svg>
+      </button>
+
+      {/* ── Mobile Dropdown ────────────────────────────────────── */}
+      {menuOpen && (
+        <div className="absolute top-[80px] left-0 right-0 bg-burgundy-900 border-b-2 border-cream-700 px-6 py-5 space-y-3 z-50 md:hidden animate-fade-in shadow-lg">
+          <Link to="/"      className="block nav-link py-1.5" onClick={() => setMenuOpen(false)}>Home</Link>
+
+          {user ? (
+            <>
+              {isAdmin
+                ? (
+                  <>
+                    <Link to="/admin" className="block nav-link py-1.5" onClick={() => setMenuOpen(false)}>Admin Panel</Link>
+                    <Link to="/track" className="block nav-link py-1.5" onClick={() => setMenuOpen(false)}>🔍 Track ID</Link>
+                  </>
+                )
+                : <Link to="/dashboard" className="block nav-link py-1.5" onClick={() => setMenuOpen(false)}>My Requests</Link>}
+              <button onClick={handleLogout} className="btn-secondary w-full text-sm mt-2">Logout</button>
+            </>
+          ) : (
+            <div className="flex flex-col gap-2 pt-1">
+              <Link to="/login"    className="btn-secondary text-center text-sm" onClick={() => setMenuOpen(false)}>Login</Link>
+              <Link to="/register" className="btn-primary  text-center text-sm" onClick={() => setMenuOpen(false)}>Register</Link>
+            </div>
+          )}
+        </div>
+      )}
+    </header>
   );
 }

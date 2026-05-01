@@ -1,166 +1,162 @@
 import { Link } from 'react-router-dom';
 import Navbar from '../components/common/Navbar';
+import SmartQLogo from '../components/common/SmartQLogo';
 
 const features = [
-  {
-    icon: '📋',
-    title: 'Online Request Form',
-    desc: 'Submit baptismal, confirmation, and other sacramental record requests anytime, anywhere.',
-  },
-  {
-    icon: '📁',
-    title: 'Document Upload',
-    desc: 'Upload required IDs and supporting documents securely in one place.',
-  },
-  {
-    icon: '🔔',
-    title: 'Real-Time Tracking',
-    desc: 'Monitor your request status from Pending to Released with full transparency.',
-  },
-  {
-    icon: '📅',
-    title: 'Appointment Scheduling',
-    desc: 'Choose your preferred pickup date and time to avoid long queues.',
-  },
-  {
-    icon: '🖥️',
-    title: 'Digital Kiosk',
-    desc: 'Walk-in customers can submit requests via a touch-friendly in-parish kiosk.',
-  },
-  {
-    icon: '🔒',
-    title: 'Secure & Private',
-    desc: 'Your records and personal data are protected with enterprise-grade security.',
-  },
+  { icon: '📋', title: 'Online Request Form',    desc: 'Submit baptismal, confirmation, and other sacramental record requests anytime, anywhere.' },
+  { icon: '📁', title: 'Document Upload',        desc: 'Upload required IDs and supporting documents securely in one place.' },
+  { icon: '🔔', title: 'Status Notifications',  desc: 'Get real-time updates on your request status directly from your personal dashboard.' },
+  { icon: '📅', title: 'Appointment Scheduling', desc: 'Choose your preferred pickup date and time to avoid long queues.' },
+  { icon: '🖥️', title: 'Digital Kiosk',          desc: 'Walk-in customers can submit requests via a touch-friendly in-parish kiosk.' },
+  { icon: '🔒', title: 'Secure & Private',       desc: 'Your records and personal data are protected with enterprise-grade security.' },
 ];
 
 const steps = [
-  { step: '01', title: 'Create Account', desc: 'Register online in under a minute.' },
+  { step: '01', title: 'Create Account',    desc: 'Register online in under a minute.' },
   { step: '02', title: 'Fill Request Form', desc: 'Select certificate type and complete the form.' },
-  { step: '03', title: 'Upload Documents', desc: 'Attach required IDs and supporting files.' },
-  { step: '04', title: 'Track & Collect', desc: 'Monitor status and pick up your document.' },
+  { step: '03', title: 'Upload Documents',  desc: 'Attach required IDs and supporting files.' },
+  { step: '04', title: 'Track & Collect',   desc: 'Monitor status and pick up your document.' },
 ];
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen flex flex-col">
       <Navbar />
 
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-hero-gradient">
-        {/* Decorative glow orbs */}
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-brand-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-36 text-center">
-          <div className="inline-flex items-center gap-2 bg-brand-500/10 border border-brand-500/30 rounded-full px-4 py-1.5 mb-6 animate-fade-in">
-            <span className="w-2 h-2 bg-brand-400 rounded-full animate-pulse-slow" />
-            <span className="text-brand-400 text-sm font-medium">Now Available Online & In-Parish Kiosk</span>
+      {/* ── Hero: Split Panel ─────────────────────────────────────────────── */}
+      <div className="split-window flex-1">
+        {/* LEFT PANEL */}
+        <aside className="panel-left animate-slide-in-l">
+          <div className="panel-left-header">
+            <SmartQLogo height={64} variant="light" />
+            <p className="text-cream-300 text-sm mt-4 leading-relaxed text-center font-medium tracking-wide">
+              Sacramental Records<br />Request System
+            </p>
           </div>
 
-          <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight animate-slide-up">
-            Your Sacramental Records,{' '}
-            <span className="text-gradient">Simplified.</span>
-          </h1>
-
-          <p className="text-slate-400 text-lg sm:text-xl max-w-2xl mx-auto mb-10 animate-slide-up">
-            SMART Q modernizes how parishes process baptismal, confirmation, and other
-            sacramental certificate requests — no more long queues or manual paperwork.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center animate-slide-up">
-            <Link to="/register" className="btn-primary text-base px-8 py-3.5">
-              Request a Certificate
+          <div className="flex flex-col gap-0">
+            <p className="text-cream-400 text-[11px] uppercase tracking-widest mb-3 font-semibold">
+              Quick Actions
+            </p>
+            <Link to="/register" id="landing-btn-request">
+              <button className="panel-btn" style={{ fontSize: '14px', padding: '14px 18px' }}>
+                Request Sacramental Records
+                <span className="block text-[11px] font-normal text-gray-600 mt-1">
+                  (Baptismal & Confirmation Certificate)
+                </span>
+              </button>
             </Link>
-            <Link to="/track" className="btn-secondary text-base px-8 py-3.5">
-              Track My Request
+            <Link to="/appointment" id="landing-btn-appointment">
+              <button className="panel-btn" style={{ fontSize: '14px', padding: '14px 18px' }}>Schedule an Appointment</button>
+            </Link>
+
+            <Link to="/kiosk" id="landing-btn-kiosk">
+              <button className="panel-btn" style={{ fontSize: '14px', padding: '14px 18px' }}>Walk-In Kiosk</button>
             </Link>
           </div>
 
           {/* Stats */}
-          <div className="mt-16 grid grid-cols-3 gap-6 max-w-lg mx-auto">
+          <div className="mt-auto pt-8 space-y-3 border-t border-burgundy-700">
             {[
-              { value: '100K+', label: 'Annual Requests' },
               { value: '24/7',  label: 'Online Access' },
               { value: '3 min', label: 'Average Submit Time' },
             ].map((s) => (
-              <div key={s.label} className="glass p-4 text-center">
-                <p className="text-brand-400 font-bold text-xl">{s.value}</p>
-                <p className="text-slate-500 text-xs mt-1">{s.label}</p>
+              <div key={s.label} className="flex justify-between items-center">
+                <span className="text-cream-300 text-sm">{s.label}</span>
+                <span className="text-cream-200 font-bold text-base">{s.value}</span>
               </div>
             ))}
           </div>
-        </div>
-      </section>
+        </aside>
 
-      {/* Features */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="text-center mb-12">
-          <h2 className="font-display text-3xl font-bold text-white mb-3">
-            Everything You Need
-          </h2>
-          <p className="text-slate-400 max-w-xl mx-auto">
-            A complete digital solution for sacramental records — built for parishioners and parish administrators.
-          </p>
-        </div>
+        {/* RIGHT PANEL */}
+        <main className="panel-right flex justify-center">
+          <div className="panel-right-content w-full max-w-5xl animate-slide-up">
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {features.map((f) => (
-            <div key={f.title} className="card-hover group">
-              <div className="text-3xl mb-4">{f.icon}</div>
-              <h3 className="font-semibold text-white mb-2 group-hover:text-brand-400 transition-colors">{f.title}</h3>
-              <p className="text-slate-400 text-sm leading-relaxed">{f.desc}</p>
+            {/* Section header */}
+            <h1 className="right-section-title text-3xl mb-8">Schedule of Masses:</h1>
+
+            <div className="mb-14 space-y-6 text-burgundy-900">
+              <div>
+                <p className="font-head text-2xl font-semibold tracking-wide uppercase">Mondays to Saturdays:</p>
+                <p className="text-4xl font-bold text-burgundy-700 ml-6 mt-1">6:00 AM &amp; 6:00 PM</p>
+              </div>
+              <div>
+                <p className="font-head text-2xl font-semibold tracking-wide uppercase mt-6">Sundays:</p>
+                <p className="text-4xl font-bold text-burgundy-700 ml-6 mt-2 leading-snug">
+                  6:00 AM, 8:00 AM,<br />
+                  10:00 AM, 3:00 PM,<br />
+                  4:30 PM, and 6:00 PM
+                </p>
+              </div>
             </div>
-          ))}
-        </div>
-      </section>
 
-      {/* How It Works */}
-      <section className="bg-slate-900/40 border-y border-slate-800 py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="font-display text-3xl font-bold text-white mb-3">How It Works</h2>
-            <p className="text-slate-400">Four simple steps to get your certificate.</p>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {steps.map((s, i) => (
-              <div key={s.step} className="relative">
-                {i < steps.length - 1 && (
-                  <div className="hidden lg:block absolute top-8 left-full w-full h-px bg-gradient-to-r from-brand-500/50 to-transparent z-10" />
-                )}
-                <div className="card text-center">
-                  <div className="w-14 h-14 rounded-2xl bg-brand-500/10 border border-brand-500/30 flex items-center justify-center mx-auto mb-4">
-                    <span className="text-brand-400 font-bold font-display text-lg">{s.step}</span>
-                  </div>
-                  <h3 className="font-semibold text-white mb-1">{s.title}</h3>
-                  <p className="text-slate-400 text-sm">{s.desc}</p>
+            <div className="section-divider my-10 border-t-2 border-cream-300" />
+
+            {/* Features Grid */}
+            <h2 className="right-section-title text-3xl mb-8">System Features</h2>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-14">
+              {features.map((f) => (
+                <div key={f.title} className="card-hover group p-8">
+                  <div className="text-5xl mb-4">{f.icon}</div>
+                  <h3 className="font-semibold text-burgundy-800 text-xl mb-2 group-hover:text-burgundy-600 transition-colors">
+                    {f.title}
+                  </h3>
+                  <p className="text-gray-600 text-base leading-relaxed">{f.desc}</p>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+              ))}
+            </div>
 
-      {/* CTA */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
-        <div className="glass p-10 lg:p-16 glow-gold">
-          <h2 className="font-display text-3xl lg:text-4xl font-bold text-white mb-4">
-            Ready to Get Started?
-          </h2>
-          <p className="text-slate-400 text-lg mb-8 max-w-xl mx-auto">
-            Join thousands of parishioners who have already streamlined their sacramental records experience.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/register" className="btn-primary text-base px-10 py-3.5">Create Free Account</Link>
-            <Link to="/kiosk" className="btn-secondary text-base px-10 py-3.5">Use as Walk-In Kiosk</Link>
+            <div className="section-divider my-10 border-t-2 border-cream-300" />
+
+            {/* How It Works */}
+            <h2 className="right-section-title text-3xl mb-8">How It Works</h2>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+              {steps.map((s, i) => (
+                <div key={s.step} className="relative">
+                  {i < steps.length - 1 && (
+                    <div className="hidden lg:block absolute top-10 left-full w-full h-1 bg-cream-400 z-10 -ml-2" />
+                  )}
+                  <div className="card text-center p-8">
+                    <div className="w-16 h-16 rounded-2xl bg-burgundy-700 flex items-center justify-center mx-auto mb-4 shadow-md z-20 relative">
+                      <span className="text-cream-200 font-bold font-head text-xl">{s.step}</span>
+                    </div>
+                    <h3 className="font-semibold text-burgundy-800 text-lg mb-2">{s.title}</h3>
+                    <p className="text-gray-500 text-base">{s.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* CTA */}
+            <div className="bg-burgundy-800 rounded-2xl p-12 text-center shadow-lg mb-8">
+              <h2 className="font-head text-4xl font-bold text-cream-200 mb-4 tracking-wide">
+                Ready to Get Started?
+              </h2>
+              <p className="text-cream-300 text-lg mb-10 max-w-2xl mx-auto leading-relaxed">
+                Join thousands of parishioners who have already streamlined their sacramental records experience.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-6 justify-center">
+                <Link to="/register" id="landing-cta-register">
+                  <button className="btn-secondary text-lg px-10 py-4 w-full sm:w-auto shadow-md">
+                    Create Free Account
+                  </button>
+                </Link>
+                <Link to="/kiosk" id="landing-cta-kiosk">
+                  <button className="btn-secondary text-lg px-10 py-4 w-full sm:w-auto shadow-md">
+                    Use as Walk-In Kiosk
+                  </button>
+                </Link>
+              </div>
+            </div>
           </div>
-        </div>
-      </section>
+        </main>
+      </div>
 
       {/* Footer */}
-      <footer className="border-t border-slate-800 py-8 text-center text-slate-500 text-sm">
+      <footer className="bg-burgundy-900 border-t-2 border-cream-700 py-6 text-center text-cream-400 text-sm">
         <p>© {new Date().getFullYear()} SMART Q — Sacramental Records Request System. All rights reserved.</p>
-        <p className="mt-1 text-slate-600">Developed by Team SMART Q · Quezon City, Philippines</p>
+        <p className="mt-2 text-cream-600">Developed by Team SMART Q · Quezon City, Philippines</p>
       </footer>
     </div>
   );

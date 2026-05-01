@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axiosInstance from '../api/axiosInstance';
 import useAuth from '../hooks/useAuth';
+import SmartQLogo from '../components/common/SmartQLogo';
 
 export default function RegisterPage() {
-  const { login } = useAuth();
-  const navigate = useNavigate();
+  const { login }  = useAuth();
+  const navigate   = useNavigate();
   const [form, setForm]       = useState({ name: '', email: '', password: '', confirm: '' });
   const [error, setError]     = useState('');
   const [loading, setLoading] = useState(false);
@@ -15,97 +16,118 @@ export default function RegisterPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    if (form.password !== form.confirm) {
-      return setError('Passwords do not match.');
-    }
-    if (form.password.length < 6) {
-      return setError('Password must be at least 6 characters.');
-    }
+    if (form.password !== form.confirm) return setError('Passwords do not match.');
+    if (form.password.length < 6)       return setError('Password must be at least 6 characters.');
     setLoading(true);
     try {
       const { data } = await axiosInstance.post('/auth/register', {
-        name: form.name,
-        email: form.email,
-        password: form.password,
+        name: form.name, email: form.email, password: form.password,
       });
       login(data.user, data.token);
       navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   return (
-    <div className="min-h-screen bg-hero-gradient flex flex-col">
-      <div className="p-4">
-        <Link to="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-brand-400 transition-colors text-sm">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Back to Home
+    <div className="min-h-screen flex flex-col bg-panel-right">
+      {/* ── Mini Header ──────────────────────────────────────────────────── */}
+      <div className="sys-header flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link to="/" aria-label="Back to home">
+            <SmartQLogo height={56} />
+          </Link>
+          <div className="h-8 w-px bg-burgundy-700 mx-2" />
+          <span className="text-white font-bold text-lg tracking-wider uppercase font-sans hidden sm:block">
+            New Account Registration
+          </span>
+        </div>
+        <Link 
+          to="/" 
+          className="bg-cream-200 hover:bg-cream-300 text-burgundy-900 font-bold py-2 px-6 rounded-md shadow transition text-base"
+        >
+          ← Back to Home
         </Link>
       </div>
 
-      <div className="flex-1 flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md animate-slide-up">
-          <div className="text-center mb-8">
-            <div className="w-14 h-14 rounded-2xl bg-brand-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-brand-500/30">
-              <span className="text-navy-900 font-bold text-xl font-display">SQ</span>
-            </div>
-            <h1 className="font-display text-2xl font-bold text-white">Create Account</h1>
-            <p className="text-slate-400 text-sm mt-1">Join SMART Q to request records online</p>
+      {/* ── Split Panel ──────────────────────────────────────────────────── */}
+      <div className="split-window flex-1">
+        {/* LEFT PANEL */}
+        <aside className="panel-left animate-slide-in-l">
+          <div className="panel-left-header">
+            <SmartQLogo height={64} />
+            <p className="text-cream-300 text-sm mt-5 text-center leading-relaxed">
+              Sacramental Records<br />Request System
+            </p>
           </div>
 
-          <div className="card">
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl px-4 py-3 mb-5 text-sm">
-                {error}
+          <div className="mt-6">
+            <p className="text-cream-400 text-xs uppercase tracking-widest mb-4 font-bold">
+              Registration Steps
+            </p>
+            {['Personal Information', 'Set Password', 'Create Account'].map((s, i) => (
+              <div key={s} className="panel-btn-sub flex items-center gap-3 py-2.5">
+                <span className="w-6 h-6 rounded-full bg-burgundy-700 text-cream-200 text-xs font-bold flex items-center justify-center shrink-0">
+                  {i + 1}
+                </span>
+                {s}
               </div>
-            )}
+            ))}
+          </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5" id="register-form">
+          <div className="mt-auto pt-8 border-t border-burgundy-700">
+            <p className="text-cream-400 text-xs text-center">Already registered?</p>
+            <Link to="/login">
+              <button className="panel-btn mt-3 text-center w-full">Sign In</button>
+            </Link>
+          </div>
+        </aside>
+
+        {/* RIGHT PANEL */}
+        <main className="panel-right flex items-center justify-center">
+          <div className="panel-right-content w-full max-w-xl animate-slide-up">
+            <h1 className="right-section-title">Create Account</h1>
+            <p className="text-gray-600 text-base mb-8 -mt-2">
+              Join SMART Q to request sacramental records online.
+            </p>
+
+            {error && <div className="alert-error mb-5">{error}</div>}
+
+            <form onSubmit={handleSubmit} className="space-y-4" id="register-form">
               <div>
                 <label className="form-label" htmlFor="reg-name">Full Name</label>
                 <input id="reg-name" name="name" type="text" required value={form.name}
                   onChange={handleChange} className="form-input" placeholder="Juan Dela Cruz" />
               </div>
-
               <div>
                 <label className="form-label" htmlFor="reg-email">Email Address</label>
                 <input id="reg-email" name="email" type="email" required value={form.email}
                   onChange={handleChange} className="form-input" placeholder="you@email.com" />
               </div>
-
               <div>
                 <label className="form-label" htmlFor="reg-password">Password</label>
                 <input id="reg-password" name="password" type="password" required value={form.password}
                   onChange={handleChange} className="form-input" placeholder="Min. 6 characters" />
               </div>
-
               <div>
                 <label className="form-label" htmlFor="reg-confirm">Confirm Password</label>
                 <input id="reg-confirm" name="confirm" type="password" required value={form.confirm}
                   onChange={handleChange} className="form-input" placeholder="Repeat your password" />
               </div>
 
-              <button type="submit" id="register-submit" disabled={loading} className="btn-primary w-full text-base">
+              <button type="submit" id="register-submit" disabled={loading}
+                className="btn-primary w-full py-3.5 text-base mt-4 font-bold">
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
-                    <span className="w-4 h-4 border-2 border-navy-900/30 border-t-navy-900 rounded-full animate-spin" />
+                    <span className="w-4 h-4 border-2 border-cream-200/30 border-t-cream-200 rounded-full animate-spin" />
                     Creating account...
                   </span>
                 ) : 'Create Account'}
               </button>
             </form>
-
-            <p className="text-center text-slate-400 text-sm mt-6">
-              Already have an account?{' '}
-              <Link to="/login" className="text-brand-400 hover:text-brand-300 font-medium">Sign in</Link>
-            </p>
           </div>
-        </div>
+        </main>
       </div>
     </div>
   );

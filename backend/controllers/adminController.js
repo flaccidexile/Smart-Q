@@ -1,5 +1,6 @@
-const { SacramentalRequest, Document, User } = require('../models');
+const { SacramentalRequest, Document, User, AuditLog } = require('../models');
 const { Op } = require('sequelize');
+const sequelize = require('../config/db');
 
 // GET /api/admin/requests
 const getAllRequests = async (req, res, next) => {
@@ -22,7 +23,7 @@ const getAllRequests = async (req, res, next) => {
         { model: Document, as: 'documents' },
         { model: User, as: 'user', attributes: ['id', 'name', 'email'] },
       ],
-      order: [['createdAt', 'DESC']],
+      order: [['createdAt', 'ASC']],
       limit: parseInt(limit),
       offset,
     });
@@ -57,6 +58,15 @@ const updateRequestStatus = async (req, res, next) => {
     }
 
     await request.update({ status, notes: notes || request.notes });
+    
+    // Log the action
+    await AuditLog.create({
+      adminId: req.user.id,
+      adminName: req.user.name,
+      action: `Updated Status -> ${status}`,
+      target: `Request #${request.id}`,
+    });
+
     res.json({ message: 'Status updated successfully.', request });
   } catch (error) {
     next(error);
@@ -108,4 +118,118 @@ const getStats = async (req, res, next) => {
   }
 };
 
-module.exports = { getAllRequests, updateRequestStatus, deleteRequest, getAllUsers, getStats };
+// GET /api/admin/reports
+const getReports = async (req, res, next) => {
+  try {
+    // 1. Request Volume Over Time (Last 6 Months)
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+    sixMonthsAgo.setDate(1); // Start of the month
+
+    const volumeData = await SacramentalRequest.findAll({
+      attributes: [
+        [sequelize.fn('DATE_FORMAT', sequelize.col('createdAt'), '%b'), 'label'],
+        [sequelize.fn('MONTH', sequelize.col('createdAt')), 'monthNum'],
+        [sequelize.fn('COUNT', sequelize.col('id')), 'value']
+      ],
+      where: {
+        createdAt: { [Op.gte]: sixMonthsAgo }
+      },
+      group: ['label', 'monthNum'],
+      order: [[sequelize.literal('monthNum'), 'ASC']]
+    });
+
+    // 2. Financial Ledger (Approved requests = paid)
+    // For now, assuming static fees: Baptismal/Confirmation = 500, Marriage = 1000, Death = 500
+    const approvedRequests = await SacramentalRequest.findAll({
+      where: { status: { [Op.in]: ['Approved', 'Released'] } },
+      order: [['updatedAt', 'DESC']],
+      limit: 10
+    });
+
+    let totalRevenue = 0;
+    const ledger = approvedRequests.map(req => {
+      const amount = req.certificateType === 'Marriage' ? 1000 : 500;
+      totalRevenue += amount;
+      return {
+        date: req.updatedAt.toISOString().split('T')[0],
+        type: `${req.certificateType} Fee`,
+        amount
+      };
+    });
+
+    // We can calculate actual total revenue from all approved ever
+    const allApproved = await SacramentalRequest.findAll({ where: { status: { [Op.in]: ['Approved', 'Released'] } } });
+    let totalAllTimeRevenue = 0;
+    allApproved.forEach(req => {
+      totalAllTimeRevenue += req.certificateType === 'Marriage' ? 1000 : 500;
+    });
+
+    // 3. Audit Logs
+    const logs = await AuditLog.findAll({
+      order: [['createdAt', 'DESC']],
+      limit: 10
+    });
+
+    const formattedLogs = logs.map(log => {
+      const date = new Date(log.createdAt);
+      return {
+        time: `${date.toISOString().split('T')[0]} ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`,
+        admin: log.adminName,
+        action: log.action,
+        target: log.target
+      }
+    });
+
+    res.json({
+      reportData: volumeData.map(d => ({ label: d.dataValues.label, value: parseInt(d.dataValues.value) })),
+      totalRevenue: totalAllTimeRevenue,
+      ledger,
+      auditLogs: formattedLogs
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// GET /api/admin/calendar
+const getCalendarAppointments = async (req, res, next) => {
+  try {
+    const appointments = await SacramentalRequest.findAll({
+      where: { appointmentDate: { [Op.not]: null } },
+      attributes: ['id', 'appointmentDate', 'appointmentTime', 'certificateType', 'source', 'status'],
+    });
+
+    // Format them for the calendar
+    // Detect conflicts (same date, same time, different requests)
+    const formatted = [];
+    const timeMap = {};
+
+    appointments.forEach(a => {
+      const key = `${a.appointmentDate}-${a.appointmentTime}`;
+      if (!timeMap[key]) timeMap[key] = [];
+      timeMap[key].push(a);
+    });
+
+    appointments.forEach(a => {
+      const key = `${a.appointmentDate}-${a.appointmentTime}`;
+      const conflict = timeMap[key].length > 1;
+
+      formatted.push({
+        id: a.id,
+        date: a.appointmentDate,
+        time: a.appointmentTime ? a.appointmentTime.substring(0,5) : '12:00', // Basic formatting
+        type: a.certificateType,
+        source: a.source === 'kiosk' ? 'Kiosk' : 'Web',
+        conflict,
+        status: a.status
+      });
+    });
+
+    res.json({ appointments: formatted });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { getAllRequests, updateRequestStatus, deleteRequest, getAllUsers, getStats, getReports, getCalendarAppointments };

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import axiosInstance from '../../api/axiosInstance';
 import Navbar from '../../components/common/Navbar';
 
 export default function UserManagement() {
-  const [users, setUsers]   = useState([]);
+  const [users, setUsers]     = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [search, setSearch]   = useState('');
 
   useEffect(() => {
     axiosInstance.get('/admin/users')
@@ -19,70 +20,124 @@ export default function UserManagement() {
   );
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen flex flex-col">
       <Navbar />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="mb-6">
-          <h1 className="font-display text-2xl font-bold text-white">User Management</h1>
-          <p className="text-slate-400 text-sm mt-1">All registered accounts on the SMART Q platform.</p>
-        </div>
 
-        {/* Search */}
-        <div className="card mb-6">
-          <input className="form-input max-w-sm" placeholder="Search by name or email..."
-            value={search} onChange={(e) => setSearch(e.target.value)} />
-        </div>
+      <div className="split-window flex-1">
+        {/* ── LEFT PANEL ──────────────────────────────────────────────────── */}
+        <aside className="panel-left">
+          <div className="panel-left-header">
+            <div className="w-12 h-12 rounded-full bg-cream-400/20 border border-cream-400/30
+                            flex items-center justify-center text-2xl">
+              👥
+            </div>
+            <p className="text-cream-200 font-head font-semibold text-sm mt-3 uppercase tracking-wide">
+              User Management
+            </p>
+            <p className="text-cream-400 text-xs mt-1 text-center">
+              All registered SMART Q accounts
+            </p>
+          </div>
 
-        {/* Table */}
-        <div className="card overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-slate-500 border-b border-slate-800 text-left">
-                <th className="pb-3 font-medium pr-4">ID</th>
-                <th className="pb-3 font-medium pr-4">Name</th>
-                <th className="pb-3 font-medium pr-4">Email</th>
-                <th className="pb-3 font-medium pr-4">Role</th>
-                <th className="pb-3 font-medium">Registered</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800">
-              {loading ? (
-                <tr><td colSpan={5} className="py-16 text-center">
-                  <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin mx-auto" />
-                </td></tr>
-              ) : filtered.length === 0 ? (
-                <tr><td colSpan={5} className="py-16 text-center text-slate-500">
-                  <p className="text-3xl mb-2">👥</p>No users found.
-                </td></tr>
-              ) : filtered.map((u) => (
-                <tr key={u.id} className="hover:bg-slate-800/30 transition-colors">
-                  <td className="py-3 pr-4 text-slate-400 font-mono">#{u.id}</td>
-                  <td className="py-3 pr-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-brand-500/20 border border-brand-500/30 flex items-center justify-center text-brand-400 text-xs font-bold">
-                        {u.name.charAt(0).toUpperCase()}
-                      </div>
-                      <span className="text-white font-medium">{u.name}</span>
-                    </div>
-                  </td>
-                  <td className="py-3 pr-4 text-slate-300">{u.email}</td>
-                  <td className="py-3 pr-4">
-                    <span className={`badge ${u.role === 'admin' ? 'badge-approved' : 'bg-slate-700 text-slate-300 border-slate-600'}`}>
-                      {u.role}
-                    </span>
-                  </td>
-                  <td className="py-3 text-slate-400">{new Date(u.createdAt).toLocaleDateString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+          <div className="space-y-0">
+            <p className="text-cream-400 text-[10px] uppercase tracking-widest mb-3 font-semibold">Navigation</p>
+            <Link to="/admin"><button className="panel-btn w-full text-left">📊 Dashboard</button></Link>
+            <Link to="/admin/requests"><button className="panel-btn w-full text-left">📋 Manage Requests</button></Link>
+            <Link to="/admin/users"><button className="panel-btn active w-full text-left">👥 User Management</button></Link>
+          </div>
 
-        {!loading && (
-          <p className="text-slate-500 text-xs mt-4 text-right">
-            Showing {filtered.length} of {users.length} users
-          </p>
-        )}
+          {/* User count */}
+          <div className="mt-6 bg-burgundy-800/60 rounded-lg p-4 text-center">
+            <p className="text-cream-400 text-xs mb-1">Total Users</p>
+            <p className="text-cream-200 font-bold text-3xl font-head">{users.length}</p>
+            {search && (
+              <p className="text-cream-400 text-xs mt-1">
+                Showing {filtered.length} results
+              </p>
+            )}
+          </div>
+
+          <div className="mt-auto pt-6 border-t border-burgundy-700">
+            <Link to="/">
+              <button className="panel-btn-sub w-full">← Back to Site</button>
+            </Link>
+          </div>
+        </aside>
+
+        {/* ── RIGHT PANEL ─────────────────────────────────────────────────── */}
+        <main className="panel-right">
+          <div className="panel-right-content animate-slide-up">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h1 className="right-section-title mb-0 pb-0 border-0">User Management</h1>
+                <p className="text-gray-500 text-sm mt-1">All registered accounts on the SMART Q platform.</p>
+              </div>
+            </div>
+
+            {/* Search */}
+            <div className="card mb-6">
+              <label className="form-label">Search Users</label>
+              <input
+                className="form-input max-w-sm"
+                placeholder="Search by name or email..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+
+            {/* Table */}
+            <div className="card overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-gray-400 border-b border-cream-200 text-left">
+                    {['ID', 'Name', 'Email', 'Role', 'Registered'].map((h) => (
+                      <th key={h} className="pb-3 font-medium text-xs uppercase tracking-wide pr-4">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-cream-100">
+                  {loading ? (
+                    <tr><td colSpan={5} className="py-16 text-center">
+                      <div className="w-8 h-8 border-2 border-burgundy-600 border-t-transparent rounded-full animate-spin mx-auto" />
+                    </td></tr>
+                  ) : filtered.length === 0 ? (
+                    <tr><td colSpan={5} className="py-16 text-center text-gray-400">
+                      <p className="text-3xl mb-2">👥</p>No users found.
+                    </td></tr>
+                  ) : filtered.map((u) => (
+                    <tr key={u.id} className="hover:bg-cream-50 transition-colors">
+                      <td className="py-3 pr-4 text-gray-400 font-mono text-xs">#{u.id}</td>
+                      <td className="py-3 pr-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-burgundy-100 border border-burgundy-200
+                                          flex items-center justify-center text-burgundy-700 text-xs font-bold">
+                            {u.name.charAt(0).toUpperCase()}
+                          </div>
+                          <span className="text-burgundy-800 font-semibold">{u.name}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 pr-4 text-gray-600">{u.email}</td>
+                      <td className="py-3 pr-4">
+                        <span className={`badge ${u.role === 'admin'
+                          ? 'bg-burgundy-100 text-burgundy-700 border-burgundy-200'
+                          : 'bg-cream-100 text-gray-600 border-cream-300'}`}>
+                          {u.role}
+                        </span>
+                      </td>
+                      <td className="py-3 text-gray-400 text-xs">{new Date(u.createdAt).toLocaleDateString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {!loading && (
+              <p className="text-gray-400 text-xs mt-4 text-right">
+                Showing {filtered.length} of {users.length} users
+              </p>
+            )}
+          </div>
+        </main>
       </div>
     </div>
   );

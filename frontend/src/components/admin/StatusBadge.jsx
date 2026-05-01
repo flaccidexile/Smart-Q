@@ -1,3 +1,7 @@
+/**
+ * StatusBadge — updated to use the new burgundy/cream design system.
+ * Colors match the cream-panel aesthetic while remaining clearly distinct.
+ */
 const STATUS_CLASSES = {
   Pending:    'badge-pending',
   Processing: 'badge-processing',
@@ -8,7 +12,7 @@ const STATUS_CLASSES = {
 
 export default function StatusBadge({ status }) {
   return (
-    <span className={STATUS_CLASSES[status] || 'badge bg-slate-700 text-slate-300'}>
+    <span className={STATUS_CLASSES[status] || 'badge bg-cream-100 text-gray-600 border border-cream-300'}>
       {status}
     </span>
   );

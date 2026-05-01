@@ -1,95 +1,265 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Oswald:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   BASE
+───────────────────────────────────────────────────────────────────────────── */
 @layer base {
   * { box-sizing: border-box; }
+
   body {
-    @apply bg-navy-950 text-slate-100 font-sans antialiased;
+    @apply bg-panel-light text-gray-900 font-sans antialiased;
     min-height: 100vh;
   }
-  ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-track { @apply bg-navy-900; }
-  ::-webkit-scrollbar-thumb { @apply bg-brand-600 rounded-full; }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track  { background: #ede3d0; }
+  ::-webkit-scrollbar-thumb  { background: #8d1a29; border-radius: 9999px; }
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   COMPONENTS
+───────────────────────────────────────────────────────────────────────────── */
 @layer components {
-  /* Buttons */
-  .btn-primary {
-    @apply bg-brand-500 hover:bg-brand-400 text-navy-900 font-semibold px-6 py-3 rounded-xl
-           transition-all duration-200 shadow-lg hover:shadow-brand-500/30 hover:-translate-y-0.5
-           active:scale-95 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2
-           focus:ring-offset-navy-900 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none;
+
+  /* ── System Header Bar ─────────────────────────────────────────────────── */
+  .sys-header {
+    @apply sticky top-0 z-50 flex items-center gap-4
+           bg-burgundy-900 border-b-2 border-cream-700
+           px-5 shadow-header;
+    height: 80px;
   }
-  .btn-secondary {
-    @apply bg-slate-800 hover:bg-slate-700 text-slate-100 font-medium px-6 py-3 rounded-xl
-           border border-slate-700 hover:border-slate-600
-           transition-all duration-200 hover:-translate-y-0.5 active:scale-95
-           focus:outline-none focus:ring-2 focus:ring-slate-500;
-  }
-  .btn-danger {
-    @apply bg-red-600 hover:bg-red-500 text-white font-medium px-4 py-2 rounded-lg
-           transition-all duration-200 active:scale-95;
+  .sys-header-title {
+    @apply text-cream-200 text-sm font-medium tracking-wide uppercase;
   }
 
-  /* Cards */
+  /* ── Split-Panel Window ────────────────────────────────────────────────── */
+  /* Outer wrapper — fills the page below the header */
+  .split-window {
+    @apply flex min-h-[calc(100vh-80px)];
+  }
+
+  /* LEFT PANEL — deep burgundy with 3D buttons */
+  .panel-left {
+    @apply flex flex-col bg-panel-left shadow-panel;
+    width: 340px;
+    flex-shrink: 0;
+    padding: 40px 32px 48px;
+  }
+  .panel-left-header {
+    @apply mb-8 flex flex-col items-center text-center;
+  }
+
+  /* RIGHT PANEL — pale cream/tan with watermark */
+  .panel-right {
+    @apply flex-1 bg-panel-right relative overflow-hidden;
+    padding: 40px 48px;
+  }
+  /* Ghosted facade watermark on right panel */
+  .panel-right::before {
+    content: 'SMARTQ';
+    position: absolute;
+    bottom: -40px;
+    right: -30px;
+    font-family: 'Oswald', sans-serif;
+    font-size: 260px;
+    font-weight: 700;
+    letter-spacing: -8px;
+    color: rgba(180, 140, 100, 0.07);
+    pointer-events: none;
+    user-select: none;
+    line-height: 1;
+    z-index: 0;
+  }
+  .panel-right-content {
+    @apply relative z-10;
+  }
+
+  /* ── Section Title on Right Panel ────────────────────────────────────── */
+  .right-section-title {
+    @apply font-head text-3xl font-bold text-burgundy-800
+           uppercase tracking-widest mb-6;
+    border-bottom: 2px solid #cc3f50;
+    padding-bottom: 10px;
+    display: inline-block;
+  }
+
+  /* ── Left Panel 3D Buttons ─────────────────────────────────────────────── */
+  .panel-btn {
+    @apply w-full text-left text-gray-900 font-semibold text-sm
+           bg-cream-200 rounded-md
+           transition-all duration-150 select-none
+           focus:outline-none focus:ring-2 focus:ring-cream-400;
+    padding: 11px 18px;
+    box-shadow: var(--tw-shadow, 0 4px 0 0 #7a1e2c, 0 6px 12px rgba(92,21,32,0.3));
+    border: 1px solid #c4a96a;
+    box-shadow: 0 4px 0 0 #7a1e2c, 0 5px 10px rgba(0,0,0,0.25);
+    margin-bottom: 12px;
+  }
+  .panel-btn:hover {
+    @apply bg-cream-300;
+    box-shadow: 0 3px 0 0 #7a1e2c, 0 4px 8px rgba(0,0,0,0.22);
+    transform: translateY(1px);
+  }
+  .panel-btn:active {
+    box-shadow: 0 1px 0 0 #7a1e2c, 0 2px 4px rgba(0,0,0,0.18);
+    transform: translateY(3px);
+  }
+  .panel-btn.active {
+    @apply bg-cream-400 font-bold;
+    box-shadow: 0 1px 0 0 #7a1e2c, inset 0 1px 4px rgba(0,0,0,0.15);
+    transform: translateY(3px);
+  }
+  .panel-btn-sub {
+    @apply panel-btn text-xs;
+    padding: 8px 16px;
+    margin-bottom: 8px;
+  }
+
+  /* ── Global Buttons ────────────────────────────────────────────────────── */
+  .btn-primary {
+    @apply inline-flex items-center justify-center
+           bg-burgundy-700 hover:bg-burgundy-800 text-cream-100
+           font-semibold text-sm rounded-md
+           px-6 py-3 transition-all duration-150
+           focus:outline-none focus:ring-2 focus:ring-burgundy-400
+           disabled:opacity-50 disabled:cursor-not-allowed;
+    box-shadow: 0 3px 0 0 #3d0c14, 0 5px 12px rgba(92,21,32,0.3);
+    border: 1px solid #8d1a29;
+  }
+  .btn-primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 0 0 #3d0c14, 0 7px 16px rgba(92,21,32,0.35);
+  }
+  .btn-primary:active:not(:disabled) {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 0 #3d0c14;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center
+           bg-cream-200 hover:bg-cream-300 text-gray-900
+           font-semibold text-sm rounded-md
+           px-6 py-3 transition-all duration-150
+           border border-cream-600
+           focus:outline-none focus:ring-2 focus:ring-cream-400
+           disabled:opacity-50 disabled:cursor-not-allowed;
+    box-shadow: 0 3px 0 0 #b88437, 0 4px 8px rgba(0,0,0,0.12);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 0 0 #b88437, 0 6px 12px rgba(0,0,0,0.16);
+  }
+  .btn-secondary:active:not(:disabled) {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 0 #b88437;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center
+           bg-red-700 hover:bg-red-800 text-white
+           font-semibold text-sm rounded-md px-4 py-2
+           transition-all duration-150
+           border border-red-900;
+    box-shadow: 0 3px 0 0 #7f1d1d;
+  }
+  .btn-danger:active { transform: translateY(2px); box-shadow: 0 1px 0 0 #7f1d1d; }
+
+  /* ── Cards (right panel) ─────────────────────────────────────────────── */
   .card {
-    @apply bg-slate-900/80 backdrop-blur border border-slate-800 rounded-2xl p-6
-           shadow-xl shadow-black/30;
+    @apply bg-white/70 backdrop-blur border border-cream-300
+           rounded-lg p-6 shadow-sm;
   }
   .card-hover {
-    @apply card hover:border-brand-500/40 hover:shadow-brand-500/10 transition-all duration-300;
+    @apply card hover:border-burgundy-400 hover:shadow-md
+           transition-all duration-200 cursor-pointer;
   }
 
-  /* Inputs */
+  /* ── Form Inputs ─────────────────────────────────────────────────────── */
   .form-input {
-    @apply w-full bg-slate-800/80 border border-slate-700 text-slate-100 rounded-xl px-4 py-3
-           focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500
-           placeholder-slate-500 transition-colors duration-200;
+    @apply w-full bg-white border border-cream-400 text-gray-900
+           rounded-md px-5 py-3
+           focus:outline-none focus:border-burgundy-500 focus:ring-1 focus:ring-burgundy-400
+           placeholder-gray-400 transition-colors duration-150 text-base;
   }
   .form-label {
-    @apply block text-sm font-medium text-slate-300 mb-1.5;
+    @apply block text-sm font-semibold text-burgundy-800 mb-2 uppercase tracking-wide;
   }
   .form-error {
-    @apply text-red-400 text-sm mt-1;
+    @apply text-red-600 text-xs mt-1;
+  }
+  .form-section-title {
+    @apply font-head text-sm font-semibold text-burgundy-700 uppercase tracking-widest
+           mb-4 pb-1 border-b border-cream-400;
   }
 
-  /* Badges */
+  /* ── Status Badges ───────────────────────────────────────────────────── */
   .badge {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold;
   }
-  .badge-pending   { @apply badge bg-amber-500/20 text-amber-400 border border-amber-500/30; }
-  .badge-processing{ @apply badge bg-blue-500/20  text-blue-400  border border-blue-500/30; }
-  .badge-approved  { @apply badge bg-green-500/20 text-green-400 border border-green-500/30; }
-  .badge-released  { @apply badge bg-purple-500/20 text-purple-400 border border-purple-500/30; }
-  .badge-rejected  { @apply badge bg-red-500/20   text-red-400   border border-red-500/30; }
+  .badge-pending    { @apply badge bg-amber-100   text-amber-800  border border-amber-300; }
+  .badge-processing { @apply badge bg-blue-100    text-blue-800   border border-blue-300; }
+  .badge-approved   { @apply badge bg-green-100   text-green-800  border border-green-300; }
+  .badge-released   { @apply badge bg-purple-100  text-purple-800 border border-purple-300; }
+  .badge-rejected   { @apply badge bg-red-100     text-red-800    border border-red-300; }
 
-  /* Glass panel */
-  .glass {
-    @apply bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl;
-  }
-
-  /* Section divider */
+  /* ── Section Divider ─────────────────────────────────────────────────── */
   .section-divider {
-    @apply border-t border-slate-800 my-8;
+    @apply border-t border-cream-300 my-6;
   }
 
-  /* Nav link */
+  /* ── Nav Link (header) ───────────────────────────────────────────────── */
   .nav-link {
-    @apply text-slate-400 hover:text-brand-400 transition-colors duration-200 text-sm font-medium;
+    @apply text-cream-300 hover:text-cream-100
+           transition-colors duration-150 text-sm font-medium;
   }
   .nav-link-active {
-    @apply text-brand-400 font-semibold;
+    @apply text-cream-100 font-bold border-b-2 border-cream-400 pb-0.5;
   }
+
+  /* ── Glass utility ───────────────────────────────────────────────────── */
+  .glass {
+    @apply bg-white/40 backdrop-blur border border-cream-200 rounded-lg;
+  }
+
+  /* ── Alert / info boxes ──────────────────────────────────────────────── */
+  .alert-success {
+    @apply bg-green-50 border border-green-300 text-green-800 rounded-lg px-4 py-3 text-sm;
+  }
+  .alert-error {
+    @apply bg-red-50 border border-red-300 text-red-800 rounded-lg px-4 py-3 text-sm;
+  }
+  .alert-info {
+    @apply bg-cream-50 border border-cream-300 text-burgundy-800 rounded-lg px-4 py-3 text-sm;
+  }
+
+  /* ── Stats card (admin) ──────────────────────────────────────────────── */
+  .stat-card {
+    @apply bg-white border border-cream-300 rounded-lg p-5 shadow-sm;
+  }
+
+  /* ── Step Progress Bar ───────────────────────────────────────────────── */
+  .step-bar-track { @apply bg-cream-200 rounded-full h-1.5; }
+  .step-bar-fill  { @apply bg-burgundy-600 h-1.5 rounded-full transition-all duration-300; }
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   UTILITIES
+───────────────────────────────────────────────────────────────────────────── */
 @layer utilities {
-  .text-gradient {
-    @apply bg-gradient-to-r from-brand-400 to-amber-400 bg-clip-text text-transparent;
+  .text-gradient-brand {
+    background: linear-gradient(135deg, #8d1a29 0%, #cc3f50 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
-  .glow-gold {
-    box-shadow: 0 0 30px rgba(234, 179, 8, 0.15);
+  .bg-burgundy-pattern {
+    background-color: #5c1520;
+    background-image:
+      radial-gradient(circle at 20% 80%, rgba(122,30,44,0.6) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(74,16,25,0.8) 0%, transparent 50%);
   }
 }
