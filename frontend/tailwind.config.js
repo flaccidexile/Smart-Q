@@ -5,8 +5,8 @@ export default {
     extend: {
       fontFamily: {
         sans:    ['Inter', 'sans-serif'],
-        display: ['Playfair Display', 'serif'],
-        head:    ['Oswald', 'sans-serif'],
+        display: ['Cormorant Garamond', 'serif'],
+        head:    ['Cinzel', 'serif'],
       },
       colors: {
         /* ── Primary: Deep Burgundy (from the 'Q' in logo) ── */

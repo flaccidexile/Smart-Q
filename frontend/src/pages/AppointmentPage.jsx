@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import SmartQLogo from '../components/common/SmartQLogo';
+import useAuth from '../hooks/useAuth';
 
 export default function AppointmentPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     service: '',
@@ -92,11 +94,27 @@ export default function AppointmentPage() {
             })}
           </div>
 
-          <div className="mt-auto pt-8 border-t border-burgundy-700">
-            <p className="text-cream-400 text-xs text-center">Already registered?</p>
-            <Link to="/login">
-              <button className="panel-btn mt-3 text-center w-full">Sign In</button>
-            </Link>
+          <div className="mt-auto pt-8 border-t border-burgundy-700 space-y-3">
+            {user ? (
+              <>
+                {[
+                  { value: '24/7',  label: 'Online Access' },
+                  { value: '3 min', label: 'Average Submit Time' },
+                ].map((s) => (
+                  <div key={s.label} className="flex justify-between items-center">
+                    <span className="text-cream-300 text-sm">{s.label}</span>
+                    <span className="text-cream-200 font-bold text-base">{s.value}</span>
+                  </div>
+                ))}
+              </>
+            ) : (
+              <>
+                <p className="text-cream-400 text-xs text-center">Already registered?</p>
+                <Link to="/login">
+                  <button className="panel-btn mt-3 text-center w-full">Sign In</button>
+                </Link>
+              </>
+            )}
           </div>
         </aside>
 

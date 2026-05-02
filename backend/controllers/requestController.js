@@ -20,7 +20,20 @@ const createRequest = async (req, res, next) => {
       appointmentDate,
       appointmentTime,
       source,
+      paymentMethod,
     } = req.body;
+
+    const prices = {
+      'Baptismal': 150.00,
+      'Confirmation': 150.00,
+      'Marriage': 300.00,
+      'Death': 100.00
+    };
+    const amountDue = prices[certificateType] || 0.00;
+
+    const paymentProofPath = req.files && req.files['paymentProof'] && req.files['paymentProof'][0] 
+      ? req.files['paymentProof'][0].path 
+      : null;
 
     const requestData = {
       fullName,
@@ -34,13 +47,16 @@ const createRequest = async (req, res, next) => {
       source: source || 'online',
       status: 'Pending',
       userId: req.user ? req.user.id : null,
+      paymentMethod: paymentMethod || 'onsite',
+      amountDue,
+      paymentProof: paymentProofPath,
     };
 
     const newRequest = await SacramentalRequest.create(requestData);
 
     // Handle uploaded documents
-    if (req.files && req.files.length > 0) {
-      const docRecords = req.files.map((file) => ({
+    if (req.files && req.files['documents'] && req.files['documents'].length > 0) {
+      const docRecords = req.files['documents'].map((file) => ({
         requestId: newRequest.id,
         filename: file.originalname,
         storedPath: file.path,
@@ -113,4 +129,32 @@ const trackRequest = async (req, res, next) => {
   }
 };
 
-module.exports = { createRequest, getMyRequests, getRequestById, trackRequest };
+// PUT /api/requests/:id/cancel
+const cancelRequest = async (req, res, next) => {
+  try {
+    const request = await SacramentalRequest.findByPk(req.params.id);
+
+    if (!request) {
+      return res.status(404).json({ message: 'Request not found.' });
+    }
+
+    // Must belong to the user
+    if (request.userId !== req.user.id) {
+      return res.status(403).json({ message: 'Access denied. You can only cancel your own requests.' });
+    }
+
+    // Can only cancel Pending requests
+    if (request.status !== 'Pending') {
+      return res.status(400).json({ message: `Cannot cancel request because it is already ${request.status}.` });
+    }
+
+    request.status = 'Cancelled';
+    await request.save();
+
+    res.json({ message: 'Request cancelled successfully.', request });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { createRequest, getMyRequests, getRequestById, trackRequest, cancelRequest };

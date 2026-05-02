@@ -73,6 +73,34 @@ const updateRequestStatus = async (req, res, next) => {
   }
 };
 
+// PATCH /api/admin/requests/:id/payment
+const updatePaymentStatus = async (req, res, next) => {
+  try {
+    const { paymentStatus } = req.body;
+    if (!['Unpaid', 'Paid'].includes(paymentStatus)) {
+      return res.status(400).json({ message: 'Invalid payment status.' });
+    }
+
+    const request = await SacramentalRequest.findByPk(req.params.id);
+    if (!request) {
+      return res.status(404).json({ message: 'Request not found.' });
+    }
+
+    await request.update({ paymentStatus });
+    
+    await AuditLog.create({
+      adminId: req.user.id,
+      adminName: req.user.name,
+      action: `Updated Payment Status -> ${paymentStatus}`,
+      target: `Request #${request.id}`,
+    });
+
+    res.json({ message: 'Payment status updated successfully.', request });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // DELETE /api/admin/requests/:id
 const deleteRequest = async (req, res, next) => {
   try {
@@ -276,4 +304,4 @@ const resolveConflicts = async (req, res, next) => {
   }
 };
 
-module.exports = { getAllRequests, updateRequestStatus, deleteRequest, getAllUsers, getStats, getReports, getCalendarAppointments, toggleBlockDate, resolveConflicts };
+module.exports = { getAllRequests, updateRequestStatus, updatePaymentStatus, deleteRequest, getAllUsers, getStats, getReports, getCalendarAppointments, toggleBlockDate, resolveConflicts };

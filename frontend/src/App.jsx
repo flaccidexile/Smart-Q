@@ -16,6 +16,7 @@ import UserManagement       from './pages/admin/UserManagement';
 import MassIntentionsView   from './pages/admin/MassIntentionsView';
 import AppointmentPage      from './pages/AppointmentPage';
 import MassIntentionPage from './pages/MassIntentionPage';
+import CertificateRequestPage from './pages/CertificateRequestPage';
 
 export default function App() {
   return (
@@ -34,6 +35,7 @@ export default function App() {
           {/* Protected – Customer */}
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<RequestPage />} />
+            <Route path="/certificate-request" element={<CertificateRequestPage />} />
           </Route>
 
           {/* Protected – Admin */}

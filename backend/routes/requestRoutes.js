@@ -8,6 +8,7 @@ const {
   getMyRequests,
   getRequestById,
   trackRequest,
+  cancelRequest,
 } = require('../controllers/requestController');
 
 const requestValidation = [
@@ -31,12 +32,16 @@ router.post(
     }
     next();
   },
-  upload.array('documents', 5),
+  upload.fields([
+    { name: 'documents', maxCount: 5 },
+    { name: 'paymentProof', maxCount: 1 }
+  ]),
   requestValidation,
   createRequest
 );
 
 router.get('/', authMiddleware, getMyRequests);
 router.get('/:id', authMiddleware, getRequestById);
+router.put('/:id/cancel', authMiddleware, cancelRequest);
 
 module.exports = router;

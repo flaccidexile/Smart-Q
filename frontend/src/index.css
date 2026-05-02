@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Oswald:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Playfair+Display:wght@400;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -64,10 +64,10 @@
     position: absolute;
     bottom: -40px;
     right: -30px;
-    font-family: 'Oswald', sans-serif;
+    font-family: 'Cinzel', serif;
     font-size: 260px;
-    font-weight: 700;
-    letter-spacing: -8px;
+    font-weight: 900;
+    letter-spacing: -2px;
     color: rgba(180, 140, 100, 0.07);
     pointer-events: none;
     user-select: none;
@@ -205,6 +205,7 @@
   .badge-approved   { @apply badge bg-green-100   text-green-800  border border-green-300; }
   .badge-released   { @apply badge bg-purple-100  text-purple-800 border border-purple-300; }
   .badge-rejected   { @apply badge bg-red-100     text-red-800    border border-red-300; }
+  .badge-cancelled  { @apply badge bg-gray-100    text-gray-600   border border-gray-300 line-through; }
 
   /* ── Section Divider ─────────────────────────────────────────────────── */
   .section-divider {

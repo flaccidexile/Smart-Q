@@ -8,6 +8,7 @@ const STATUS_CLASSES = {
   Approved:   'badge-approved',
   Released:   'badge-released',
   Rejected:   'badge-rejected',
+  Cancelled:  'badge-cancelled',
 };
 
 export default function StatusBadge({ status }) {

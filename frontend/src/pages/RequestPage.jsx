@@ -5,28 +5,12 @@ import SmartQLogo from '../components/common/SmartQLogo';
 import StatusBadge from '../components/admin/StatusBadge';
 import useAuth from '../hooks/useAuth';
 
-const STEPS = ['Personal Info', 'Certificate Details', 'Upload Documents', 'Review & Submit'];
-const CERT_TYPES = ['Baptismal', 'Confirmation', 'Marriage', 'Death'];
-const TABS = ['My Sacramental Requests', 'My Appointments', 'Payment History', 'New Certificate Request'];
-
-const initialForm = {
-  fullName: '', contactNumber: '', address: '',
-  certificateType: '', purpose: '', dateOfSacrament: '',
-  appointmentDate: '', appointmentTime: '',
-};
+const TABS = ['My Sacramental Requests', 'My Appointments', 'Payment History'];
 
 export default function RequestPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('My Sacramental Requests');
-  
-  // Form State
-  const [step, setStep] = useState(0);
-  const [form, setForm] = useState(initialForm);
-  const [files, setFiles] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(null);
-  const [error, setError] = useState('');
 
   // Data State
   const [requests, setRequests] = useState([]);
@@ -41,42 +25,18 @@ export default function RequestPage() {
     } catch {} finally { setFetching(false); }
   };
 
-  const handleLogout = () => { logout(); navigate('/login'); };
-
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
-  const handleFileChange = (e) => {
-    const selected = Array.from(e.target.files);
-    if (selected.length > 5) return setError('Maximum 5 files allowed.');
-    setFiles(selected);
-    setError('');
-  };
-
-  const handleSubmit = async () => {
-    setLoading(true);
-    setError('');
+  const handleCancelRequest = async (id) => {
+    if (!window.confirm('Are you sure you want to cancel this request? This action cannot be undone.')) return;
     try {
-      const fd = new FormData();
-      Object.entries(form).forEach(([k, v]) => fd.append(k, v));
-      files.forEach((f) => fd.append('documents', f));
-      const { data } = await axiosInstance.post('/requests', fd, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      setSuccess(data.request);
-      setForm(initialForm);
-      setFiles([]);
-      setStep(0);
-      fetchRequests();
-      setActiveTab('My Sacramental Requests');
+      await axiosInstance.put(`/requests/${id}/cancel`);
+      alert('Request cancelled successfully.');
+      fetchRequests(); // Refresh data
     } catch (err) {
-      setError(err.response?.data?.message || 'Submission failed.');
-    } finally { setLoading(false); }
+      alert(err.response?.data?.message || 'Failed to cancel request.');
+    }
   };
 
-  const canNext = () => {
-    if (step === 0) return form.fullName && form.contactNumber;
-    if (step === 1) return form.certificateType && form.purpose;
-    return true;
-  };
+  const handleLogout = () => { logout(); navigate('/login'); };
 
   return (
     <div className="min-h-screen flex flex-col bg-panel-right">
@@ -132,27 +92,37 @@ export default function RequestPage() {
             ))}
           </div>
 
-          <div className="mt-auto pt-6 border-t border-burgundy-700">
-            <button onClick={handleLogout} className="panel-btn mt-3 text-center w-full">Sign Out</button>
+          <div className="mt-auto pt-6 border-t border-burgundy-700 space-y-3">
+            {[
+              { value: '24/7',  label: 'Online Access' },
+              { value: '3 min', label: 'Average Submit Time' },
+            ].map((s) => (
+              <div key={s.label} className="flex justify-between items-center">
+                <span className="text-cream-300 text-sm">{s.label}</span>
+                <span className="text-cream-200 font-bold text-base">{s.value}</span>
+              </div>
+            ))}
           </div>
         </aside>
 
         {/* ── RIGHT PANEL ─────────────────────────────────────────────────── */}
         <main className="panel-right flex justify-center">
-          <div className="panel-right-content w-full max-w-5xl animate-slide-up">
+          <div className="panel-right-content w-full animate-slide-up max-w-5xl">
             
-            {success && (
-              <div className="alert-success mb-6 flex justify-between items-center text-base">
-                <span>✅ Request #{success.id} submitted! Track it in your history.</span>
-                <button className="underline text-green-700 font-semibold" onClick={() => setSuccess(null)}>Dismiss</button>
-              </div>
-            )}
-
             {/* TAB 1: My Sacramental Requests */}
             {activeTab === 'My Sacramental Requests' && (
               <div>
-                <h1 className="right-section-title">My Sacramental Requests</h1>
-                <p className="text-gray-600 text-base mb-8 -mt-2">Track the real-time status of all your submitted documents.</p>
+                <div className="flex justify-between items-start mb-8">
+                  <div>
+                    <h1 className="right-section-title !mb-2">My Sacramental Requests</h1>
+                    <p className="text-gray-600 text-base">Track the real-time status of all your submitted documents.</p>
+                  </div>
+                  {requests.length > 0 && !fetching && (
+                    <button onClick={() => navigate('/certificate-request')} className="btn-primary px-6 py-2.5 text-sm font-bold shadow-sm whitespace-nowrap mt-1">
+                      + New Request
+                    </button>
+                  )}
+                </div>
                 
                 <div className="card">
                   {fetching ? (
@@ -163,7 +133,7 @@ export default function RequestPage() {
                     <div className="text-center py-16 text-gray-400 bg-cream-50 rounded-lg border-2 border-dashed border-cream-200">
                       <p className="text-5xl mb-4">📭</p>
                       <p className="text-lg text-gray-600 font-medium">No requests yet.</p>
-                      <button onClick={() => setActiveTab('New Certificate Request')} className="btn-primary mt-6">Submit Your First Request</button>
+                      <button onClick={() => navigate('/certificate-request')} className="btn-primary mt-6">Submit Your First Request</button>
                     </div>
                   ) : (
                     <div className="space-y-4">
@@ -181,6 +151,14 @@ export default function RequestPage() {
                             <StatusBadge status={r.status} />
                             {r.status === 'Ready for Release' && (
                               <span className="text-xs text-green-700 bg-green-100 px-2 py-1 rounded font-bold">Please pick up soon!</span>
+                            )}
+                            {r.status === 'Pending' && (
+                              <button 
+                                onClick={() => handleCancelRequest(r.id)} 
+                                className="text-xs text-red-600 hover:text-red-800 font-bold underline mt-1"
+                              >
+                                Cancel Request
+                              </button>
                             )}
                           </div>
                         </div>
@@ -210,9 +188,20 @@ export default function RequestPage() {
                           <div className="absolute top-0 left-0 w-1.5 h-full bg-burgundy-600"></div>
                           <p className="text-burgundy-900 font-bold text-xl mb-1">{new Date(r.appointmentDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
                           <p className="text-gray-800 text-lg font-medium mb-4">⏰ {r.appointmentTime}</p>
-                          <div className="bg-cream-100 p-3 rounded-md">
+                          <div className="bg-cream-100 p-3 rounded-md mb-3">
                             <p className="text-sm font-semibold text-burgundy-800">{r.certificateType} Certificate</p>
                             <p className="text-xs text-gray-500 mt-1">Request #{r.id}</p>
+                          </div>
+                          <div className="flex justify-between items-center mt-auto border-t border-cream-200 pt-3">
+                            <StatusBadge status={r.status} />
+                            {r.status === 'Pending' && (
+                              <button 
+                                onClick={() => handleCancelRequest(r.id)} 
+                                className="text-xs text-red-600 hover:text-red-800 font-bold underline"
+                              >
+                                Cancel
+                              </button>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -247,141 +236,6 @@ export default function RequestPage() {
                         </tr>
                       </tbody>
                     </table>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* TAB 4: New Certificate Request */}
-            {activeTab === 'New Certificate Request' && (
-              <div className="max-w-3xl mx-auto">
-                <h1 className="right-section-title">New Certificate Request</h1>
-                <p className="text-gray-600 text-base mb-8 -mt-2">Fill out the details below to request a new sacramental document.</p>
-
-                {error && <div className="alert-error mb-5 text-base">{error}</div>}
-
-                <div className="flex gap-2 mb-8">
-                  {STEPS.map((s, i) => (
-                    <div key={s} className="flex-1">
-                      <div className={`h-2 rounded-full transition-colors duration-300 ${i <= step ? 'bg-burgundy-600' : 'bg-cream-300'}`} />
-                      <p className={`text-xs mt-2 font-bold ${i === step ? 'text-burgundy-800' : 'text-gray-400'}`}>{s}</p>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="card p-8 bg-white/90">
-                  {step === 0 && (
-                    <div className="space-y-5 animate-fade-in">
-                      <p className="form-section-title text-lg">Personal Information</p>
-                      <div>
-                        <label className="form-label">Full Name *</label>
-                        <input name="fullName" value={form.fullName} onChange={handleChange} className="form-input" placeholder="Juan Dela Cruz" />
-                      </div>
-                      <div>
-                        <label className="form-label">Contact Number *</label>
-                        <input name="contactNumber" value={form.contactNumber} onChange={handleChange} className="form-input" placeholder="09XXXXXXXXX" />
-                      </div>
-                      <div>
-                        <label className="form-label">Address</label>
-                        <textarea name="address" value={form.address} onChange={handleChange} className="form-input resize-none" rows={2} placeholder="House No., Street, Barangay, City" />
-                      </div>
-                    </div>
-                  )}
-
-                  {step === 1 && (
-                    <div className="space-y-5 animate-fade-in">
-                      <p className="form-section-title text-lg">Certificate Details</p>
-                      <div>
-                        <label className="form-label">Certificate Type *</label>
-                        <select name="certificateType" value={form.certificateType} onChange={handleChange} className="form-input">
-                          <option value="">Select type...</option>
-                          {CERT_TYPES.map((t) => <option key={t} value={t}>{t} Certificate</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="form-label">Purpose *</label>
-                        <textarea name="purpose" value={form.purpose} onChange={handleChange} className="form-input resize-none" rows={3} placeholder="e.g., For marriage requirements, school enrollment..." />
-                      </div>
-                      <div>
-                        <label className="form-label">Date of Sacrament</label>
-                        <input name="dateOfSacrament" type="date" value={form.dateOfSacrament} onChange={handleChange} className="form-input" />
-                      </div>
-                    </div>
-                  )}
-
-                  {step === 2 && (
-                    <div className="space-y-6 animate-fade-in">
-                      <p className="form-section-title text-lg">Supporting Documents & Pickup</p>
-                      <div>
-                        <label className="form-label">Upload Documents (Max 5 files)</label>
-                        <div className="border-2 border-dashed border-cream-400 rounded-xl p-10 text-center hover:border-burgundy-400 transition-colors bg-cream-50 cursor-pointer">
-                          <input id="doc-upload" type="file" multiple accept=".jpg,.jpeg,.png,.pdf" onChange={handleFileChange} className="hidden" />
-                          <label htmlFor="doc-upload" className="cursor-pointer block">
-                            <div className="text-5xl mb-4">📁</div>
-                            <p className="text-gray-800 font-bold text-lg">Tap to upload or drag files here</p>
-                            <p className="text-gray-500 text-sm mt-1">JPG, PNG, PDF — max 5MB each</p>
-                          </label>
-                        </div>
-                        {files.length > 0 && (
-                          <ul className="mt-4 space-y-2">
-                            {files.map((f, i) => (
-                              <li key={i} className="flex items-center gap-3 text-base bg-cream-100 rounded-lg px-4 py-3">
-                                <span className="text-xl">📄</span>
-                                <span className="text-gray-800 font-medium flex-1 truncate">{f.name}</span>
-                                <span className="text-gray-500 text-sm">{(f.size / 1024).toFixed(0)} KB</span>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-                      <div className="grid grid-cols-2 gap-5 mt-4">
-                        <div>
-                          <label className="form-label">Preferred Pickup Date</label>
-                          <input name="appointmentDate" type="date" value={form.appointmentDate} onChange={handleChange} className="form-input" min={new Date().toISOString().split('T')[0]} />
-                        </div>
-                        <div>
-                          <label className="form-label">Preferred Time</label>
-                          <input name="appointmentTime" type="time" value={form.appointmentTime} onChange={handleChange} className="form-input" />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {step === 3 && (
-                    <div className="animate-fade-in space-y-4">
-                      <p className="form-section-title text-lg">Review Before Submitting</p>
-                      <div className="bg-cream-50 border border-cream-200 rounded-xl p-6">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-5 gap-x-4">
-                          {[
-                            ['Full Name', form.fullName],
-                            ['Contact', form.contactNumber],
-                            ['Address', form.address],
-                            ['Certificate Type', form.certificateType],
-                            ['Purpose', form.purpose],
-                            ['Date of Sacrament', form.dateOfSacrament || 'Not specified'],
-                            ['Appointment', form.appointmentDate ? `${form.appointmentDate} at ${form.appointmentTime}` : 'Not set'],
-                            ['Documents', files.length ? `${files.length} file(s) attached` : 'None'],
-                          ].map(([label, val]) => val && (
-                            <div key={label} className="col-span-1 sm:col-span-3 grid grid-cols-3 border-b border-cream-200 pb-3 last:border-0 last:pb-0">
-                              <span className="text-gray-500 font-bold uppercase tracking-wider text-xs col-span-1 pt-1">{label}</span>
-                              <span className="text-burgundy-900 text-base font-semibold col-span-2">{val}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Navigation */}
-                  <div className="flex justify-between mt-10 gap-4">
-                    {step > 0
-                      ? <button onClick={() => setStep(s => s - 1)} className="btn-secondary px-8 py-3.5 text-base">← Back</button>
-                      : <div />}
-                    {step < STEPS.length - 1
-                      ? <button onClick={() => setStep(s => s + 1)} disabled={!canNext()} className="btn-primary px-10 py-3.5 text-base font-bold">Next →</button>
-                      : <button onClick={handleSubmit} disabled={loading || !form.fullName || !form.certificateType} className="btn-primary px-10 py-3.5 text-base font-bold">
-                          {loading ? 'Submitting...' : '✓ Submit Request'}
-                        </button>}
                   </div>
                 </div>
               </div>

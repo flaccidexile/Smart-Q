@@ -203,6 +203,9 @@ export default function Dashboard() {
                             <td className="py-4 px-4">
                               <p className="text-burgundy-900 font-bold text-base">{r.fullName}</p>
                               <p className="text-gray-500 text-sm mt-0.5">{r.certificateType} Certificate</p>
+                              <span className={`inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${r.paymentStatus === 'Paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                {r.paymentStatus} (₱{r.amountDue})
+                              </span>
                             </td>
                             <td className="py-4 px-4">
                               <span className={`px-3 py-1 rounded-full text-xs font-bold ${r.source === 'kiosk'

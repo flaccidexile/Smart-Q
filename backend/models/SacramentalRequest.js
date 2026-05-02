@@ -21,7 +21,7 @@ const SacramentalRequest = sequelize.define('SacramentalRequest', {
     allowNull: true,
   },
   status: {
-    type: DataTypes.ENUM('Pending', 'Processing', 'Approved', 'Released', 'Rejected'),
+    type: DataTypes.ENUM('Pending', 'Processing', 'Approved', 'Released', 'Rejected', 'Cancelled'),
     defaultValue: 'Pending',
   },
   source: {
@@ -55,6 +55,22 @@ const SacramentalRequest = sequelize.define('SacramentalRequest', {
   conflictResolved: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
+  },
+  paymentMethod: {
+    type: DataTypes.ENUM('onsite', 'online'),
+    defaultValue: 'onsite',
+  },
+  paymentStatus: {
+    type: DataTypes.ENUM('Unpaid', 'Paid'),
+    defaultValue: 'Unpaid',
+  },
+  amountDue: {
+    type: DataTypes.DECIMAL(10, 2),
+    defaultValue: 0.00,
+  },
+  paymentProof: {
+    type: DataTypes.STRING,
+    allowNull: true,
   },
   // userId is added via association (nullable for kiosk/guest)
 }, {

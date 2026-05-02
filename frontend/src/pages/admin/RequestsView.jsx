@@ -17,6 +17,7 @@ export default function RequestsView() {
   const [selected, setSelected]     = useState(null);
   const [newStatus, setNewStatus]   = useState('');
   const [notes, setNotes]           = useState('');
+  const [paymentStatus, setPaymentStatus] = useState('');
   const [updating, setUpdating]     = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
 
@@ -34,14 +35,17 @@ export default function RequestsView() {
 
   useEffect(() => { fetchRequests(); }, [fetchRequests]);
 
-  const openModal  = (r) => { setSelected(r); setNewStatus(r.status); setNotes(r.notes || ''); };
-  const closeModal = () => { setSelected(null); setNewStatus(''); setNotes(''); };
+  const openModal  = (r) => { setSelected(r); setNewStatus(r.status); setNotes(r.notes || ''); setPaymentStatus(r.paymentStatus || 'Unpaid'); };
+  const closeModal = () => { setSelected(null); setNewStatus(''); setNotes(''); setPaymentStatus(''); };
 
   const handleUpdate = async () => {
     setUpdating(true);
     try {
       await axiosInstance.patch(`/admin/requests/${selected.id}/status`, { status: newStatus, notes });
-      setSuccessMsg(`Request #${selected.id} updated to ${newStatus}.`);
+      if (paymentStatus !== selected.paymentStatus) {
+        await axiosInstance.patch(`/admin/requests/${selected.id}/payment`, { paymentStatus });
+      }
+      setSuccessMsg(`Request #${selected.id} updated successfully.`);
       closeModal();
       fetchRequests();
       setTimeout(() => setSuccessMsg(''), 3000);
@@ -202,7 +206,7 @@ export default function RequestsView() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-gray-400 border-b border-cream-200 text-left">
-                    {['ID', 'Full Name', 'Certificate', 'Source', 'Appointment', 'Status', 'Submitted', 'Actions'].map((h) => (
+                    {['ID', 'Full Name', 'Certificate', 'Source', 'Appointment', 'Payment', 'Status', 'Submitted', 'Actions'].map((h) => (
                       <th key={h} className="pb-3 font-medium text-xs uppercase tracking-wide pr-4">{h}</th>
                     ))}
                   </tr>
@@ -229,6 +233,14 @@ export default function RequestsView() {
                         </span>
                       </td>
                       <td className="py-3 pr-4 text-gray-400 text-xs">{r.appointmentDate || '—'}</td>
+                      <td className="py-3 pr-4">
+                        <div className="flex flex-col gap-1">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full w-fit ${r.paymentStatus === 'Paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {r.paymentStatus} (₱{r.amountDue})
+                          </span>
+                          <span className="text-[10px] text-gray-500 uppercase">{r.paymentMethod}</span>
+                        </div>
+                      </td>
                       <td className="py-3 pr-4"><StatusBadge status={r.status} /></td>
                       <td className="py-3 pr-4 text-gray-400 text-xs">{new Date(r.createdAt).toLocaleDateString()}</td>
                       <td className="py-3">
@@ -265,6 +277,32 @@ export default function RequestsView() {
             </div>
 
             <div className="p-6 space-y-4">
+              <div className="bg-cream-50 p-4 rounded-lg border border-cream-200">
+                <p className="font-bold text-burgundy-900 text-sm mb-2">Payment Information</p>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-gray-600">Amount Due:</span>
+                  <span className="font-bold">₱{selected.amountDue}</span>
+                </div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-gray-600">Method:</span>
+                  <span className="font-medium uppercase">{selected.paymentMethod}</span>
+                </div>
+                {selected.paymentProof && (
+                  <div className="mt-2">
+                    <a href={`http://localhost:5000/${selected.paymentProof.replace(/\\/g, '/')}`} target="_blank" rel="noreferrer" className="text-burgundy-600 text-xs underline font-bold">
+                      View Payment Receipt ↗
+                    </a>
+                  </div>
+                )}
+                <div className="mt-4 pt-3 border-t border-cream-200">
+                  <label className="form-label text-xs">Payment Status</label>
+                  <select className="form-input text-sm py-1.5" value={paymentStatus} onChange={(e) => setPaymentStatus(e.target.value)}>
+                    <option value="Unpaid">Unpaid</option>
+                    <option value="Paid">Paid</option>
+                  </select>
+                </div>
+              </div>
+
               <div>
                 <label className="form-label">New Status</label>
                 <select className="form-input" value={newStatus} onChange={(e) => setNewStatus(e.target.value)}>

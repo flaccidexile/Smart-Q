@@ -20,11 +20,13 @@ const steps = [
 ];
 
 export default function LandingPage() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
 
   if (isAdmin) {
     return <Navigate to="/admin" replace />;
   }
+
+  const requestLink = user ? '/certificate-request' : '/login';
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -45,11 +47,11 @@ export default function LandingPage() {
             <p className="text-cream-400 text-[11px] uppercase tracking-widest mb-3 font-semibold">
               Quick Actions
             </p>
-            <Link to="/register" id="landing-btn-request">
+            <Link to={user ? '/dashboard?tab=new' : '/login'} id="landing-btn-request">
               <button className="panel-btn" style={{ fontSize: '14px', padding: '14px 18px' }}>
                 Request Sacramental Records
                 <span className="block text-[11px] font-normal text-gray-600 mt-1">
-                  (Baptismal & Confirmation Certificate)
+                  (Baptismal &amp; Confirmation Certificate)
                 </span>
               </button>
             </Link>
@@ -164,9 +166,9 @@ export default function LandingPage() {
                 Join thousands of parishioners who have already streamlined their sacramental records experience.
               </p>
               <div className="flex flex-col sm:flex-row gap-6 justify-center">
-                <Link to="/register" id="landing-cta-register">
+                <Link to={user ? '/dashboard' : '/register'} id="landing-cta-register">
                   <button className="btn-secondary text-lg px-10 py-4 w-full sm:w-auto shadow-md">
-                    Create Free Account
+                    {user ? 'Go to My Requests' : 'Create Free Account'}
                   </button>
                 </Link>
                 <Link to="/kiosk" id="landing-cta-kiosk">
