@@ -24,12 +24,14 @@ const createRequest = async (req, res, next) => {
     } = req.body;
 
     const prices = {
-      'Baptismal': 150.00,
-      'Confirmation': 150.00,
-      'Marriage': 300.00,
-      'Death': 100.00
+      'Baptismal':      150.00,
+      'Confirmation':   150.00,
+      'Marriage':       300.00,
+      'Death':          100.00,
+      'Mass Intention':   0.00,
+      'Appointment':      0.00,
     };
-    const amountDue = prices[certificateType] || 0.00;
+    const amountDue = prices[certificateType] ?? 0.00;
 
     const paymentProofPath = req.files && req.files['paymentProof'] && req.files['paymentProof'][0] 
       ? req.files['paymentProof'][0].path 

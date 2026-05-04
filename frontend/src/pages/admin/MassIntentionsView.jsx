@@ -1,17 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import SmartQLogo from '../../components/common/SmartQLogo';
 import useAuth from '../../hooks/useAuth';
+import axiosInstance from '../../api/axiosInstance';
 
-/* ── Mock data — replace with axiosInstance calls when backend is ready ─── */
-const MOCK_INTENTIONS = [
-  { id: 1, intentionType: 'deceased',     recipientName: 'Lolo Jose Santos',        requesterName: 'Maria Santos',    contactInfo: 'maria@email.com',   massDate: 'May 10, 2026', massTime: '6:00 AM',  physicalCard: true,  priestNote: 'Died last month, 1st death anniversary', status: 'Pending',   submittedAt: '2026-05-02' },
-  { id: 2, intentionType: 'healing',      recipientName: 'Ana Reyes',               requesterName: 'Pedro Reyes',     contactInfo: '09171234567',       massDate: 'May 11, 2026', massTime: '6:00 PM',  physicalCard: false, priestNote: 'Successful surgery prayer',              status: 'Confirmed', submittedAt: '2026-05-02' },
-  { id: 3, intentionType: 'birthday',     recipientName: 'The Dela Cruz Family',    requesterName: 'Juan Dela Cruz',  contactInfo: 'jdc@email.com',     massDate: 'May 15, 2026', massTime: '8:00 AM',  physicalCard: true,  priestNote: '50th Wedding Anniversary',              status: 'Pending',   submittedAt: '2026-05-01' },
-  { id: 4, intentionType: 'thanksgiving', recipientName: 'St. Joseph Parish Youth', requesterName: 'Carla Villanueva',contactInfo: '09189876543',       massDate: 'May 18, 2026', massTime: '10:00 AM', physicalCard: false, priestNote: 'Thanksgiving for Youth Camp',            status: 'Cancelled', submittedAt: '2026-04-30' },
-];
 
-const STATUSES       = ['Pending', 'Confirmed', 'Cancelled'];
+const STATUSES = ['Pending', 'Processing', 'Approved', 'Released', 'Rejected', 'Cancelled'];
 const INTENTION_LABELS = {
   deceased:     '† Deceased',
   healing:      '🙏 Healing / Sick',
@@ -82,12 +76,65 @@ function AdminNav({ active }) {
 export default function MassIntentionsView() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [intentions, setIntentions] = useState(MOCK_INTENTIONS);
+  const [intentions, setIntentions] = useState([]);
+  const [loading, setLoading]       = useState(true);
   const [filters, setFilters]       = useState({ status: '', intentionType: '', search: '' });
   const [selected, setSelected]     = useState(null);
   const [newStatus, setNewStatus]   = useState('');
   const [adminNote, setAdminNote]   = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  // Helper: parse notes field for requester info
+  function parseNotes(notes = '') {
+    const lines = (notes || '').split('\n');
+    const requesterLine = lines.find(l => l.startsWith('Requester:')) || '';
+    const priestLine    = lines.find(l => l.startsWith('Priest Note:')) || '';
+    const physCardLine  = lines.find(l => l.includes('Physical Mass Card Requested')) || '';
+    const requesterRaw  = requesterLine.replace('Requester:', '').trim();
+    const parenIdx = requesterRaw.lastIndexOf('(');
+    const requesterName = parenIdx > 0 ? requesterRaw.substring(0, parenIdx).trim() : requesterRaw;
+    const contactInfo   = parenIdx > 0 ? requesterRaw.substring(parenIdx + 1).replace(')', '').trim() : '';
+    return {
+      requesterName,
+      contactInfo,
+      priestNote:   priestLine.replace('Priest Note:', '').trim(),
+      physicalCard: !!physCardLine,
+    };
+  }
+
+  // Fetch from backend
+  const fetchIntentions = async () => {
+    try {
+      const { data } = await axiosInstance.get('/admin/requests', {
+        params: { certificateType: 'Mass Intention', limit: 100 },
+      });
+      const mapped = (data.requests || []).map(r => {
+        const parsed = parseNotes(r.notes);
+        return {
+          id:            r.id,
+          intentionType: r.purpose || 'thanksgiving',
+          recipientName: r.fullName,
+          requesterName: parsed.requesterName,
+          contactInfo:   parsed.contactInfo || r.contactNumber,
+          massDate:      r.appointmentDate
+            ? new Date(r.appointmentDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+            : '—',
+          massTime:      r.appointmentTime ? r.appointmentTime.substring(0, 5) : '—',
+          physicalCard:  parsed.physicalCard,
+          priestNote:    parsed.priestNote,
+          status:        r.status,
+          submittedAt:   r.createdAt ? r.createdAt.split('T')[0] : '—',
+        };
+      });
+      setIntentions(mapped);
+    } catch (err) {
+      console.error('Failed to fetch Mass Intentions', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchIntentions(); }, []);
 
   /* Filter logic */
   const filtered = useCallback(() => {
@@ -103,16 +150,26 @@ export default function MassIntentionsView() {
   const openModal  = (i) => { setSelected(i); setNewStatus(i.status); setAdminNote(''); };
   const closeModal = ()  => { setSelected(null); setNewStatus(''); setAdminNote(''); };
 
-  const handleUpdate = () => {
-    setIntentions(prev => prev.map(i => i.id === selected.id ? { ...i, status: newStatus } : i));
-    setSuccessMsg(`Intention #${selected.id} updated to "${newStatus}".`);
+  const handleUpdate = async () => {
+    try {
+      await axiosInstance.patch(`/admin/requests/${selected.id}/status`, { status: newStatus, notes: adminNote });
+      await fetchIntentions();
+      setSuccessMsg(`Intention #${selected.id} updated to "${newStatus}".`);
+    } catch {
+      setSuccessMsg('Update failed. Please try again.');
+    }
     closeModal();
     setTimeout(() => setSuccessMsg(''), 3500);
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (!window.confirm(`Remove Mass Intention #${id}? This cannot be undone.`)) return;
-    setIntentions(prev => prev.filter(i => i.id !== id));
+    try {
+      await axiosInstance.delete(`/admin/requests/${id}`);
+      await fetchIntentions();
+    } catch {
+      alert('Delete failed.');
+    }
   };
 
   return (

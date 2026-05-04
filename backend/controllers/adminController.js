@@ -149,35 +149,48 @@ const getStats = async (req, res, next) => {
 // GET /api/admin/reports
 const getReports = async (req, res, next) => {
   try {
-    // 1. Request Volume Over Time (Last 6 Months)
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
-    sixMonthsAgo.setDate(1); // Start of the month
+    const targetYear = req.query.year || new Date().getFullYear();
+    const startDate = new Date(`${targetYear}-01-01T00:00:00Z`);
+    const endDate = new Date(`${parseInt(targetYear) + 1}-01-01T00:00:00Z`);
 
     const volumeData = await SacramentalRequest.findAll({
       attributes: [
-        [sequelize.fn('DATE_FORMAT', sequelize.col('createdAt'), '%b'), 'label'],
-        [sequelize.fn('MONTH', sequelize.col('createdAt')), 'monthNum'],
+        [sequelize.fn('MONTH', sequelize.fn('COALESCE', sequelize.col('SacramentalRequest.appointmentDate'), sequelize.col('SacramentalRequest.createdAt'))), 'monthNum'],
         [sequelize.fn('COUNT', sequelize.col('id')), 'value']
       ],
       where: {
-        createdAt: { [Op.gte]: sixMonthsAgo }
+        [Op.and]: [
+          sequelize.where(sequelize.fn('COALESCE', sequelize.col('SacramentalRequest.appointmentDate'), sequelize.col('SacramentalRequest.createdAt')), '>=', startDate),
+          sequelize.where(sequelize.fn('COALESCE', sequelize.col('SacramentalRequest.appointmentDate'), sequelize.col('SacramentalRequest.createdAt')), '<', endDate)
+        ]
       },
-      group: ['label', 'monthNum'],
+      group: ['monthNum'],
       order: [[sequelize.literal('monthNum'), 'ASC']]
+    });
+
+    const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const fullYearData = monthLabels.map((m, i) => {
+      const found = volumeData.find(d => parseInt(d.dataValues.monthNum) === i + 1);
+      return { label: m, value: found ? parseInt(found.dataValues.value) : 0 };
     });
 
     // 2. Financial Ledger (Approved requests = paid)
     // For now, assuming static fees: Baptismal/Confirmation = 500, Marriage = 1000, Death = 500
     const approvedRequests = await SacramentalRequest.findAll({
-      where: { status: { [Op.in]: ['Approved', 'Released'] } },
+      where: { 
+        status: { [Op.in]: ['Approved', 'Released'] },
+        [Op.and]: [
+          sequelize.where(sequelize.fn('COALESCE', sequelize.col('SacramentalRequest.appointmentDate'), sequelize.col('SacramentalRequest.createdAt')), '>=', startDate),
+          sequelize.where(sequelize.fn('COALESCE', sequelize.col('SacramentalRequest.appointmentDate'), sequelize.col('SacramentalRequest.createdAt')), '<', endDate)
+        ]
+      },
       order: [['updatedAt', 'DESC']],
       limit: 10
     });
 
     let totalRevenue = 0;
     const ledger = approvedRequests.map(req => {
-      const amount = req.certificateType === 'Marriage' ? 1000 : 500;
+      const amount = parseFloat(req.amountDue) || 0;
       totalRevenue += amount;
       return {
         date: req.updatedAt.toISOString().split('T')[0],
@@ -186,11 +199,19 @@ const getReports = async (req, res, next) => {
       };
     });
 
-    // We can calculate actual total revenue from all approved ever
-    const allApproved = await SacramentalRequest.findAll({ where: { status: { [Op.in]: ['Approved', 'Released'] } } });
+    // Calculate actual total revenue from all approved/released
+    const allApproved = await SacramentalRequest.findAll({ 
+      where: { 
+        status: { [Op.in]: ['Approved', 'Released'] },
+        [Op.and]: [
+          sequelize.where(sequelize.fn('COALESCE', sequelize.col('SacramentalRequest.appointmentDate'), sequelize.col('SacramentalRequest.createdAt')), '>=', startDate),
+          sequelize.where(sequelize.fn('COALESCE', sequelize.col('SacramentalRequest.appointmentDate'), sequelize.col('SacramentalRequest.createdAt')), '<', endDate)
+        ]
+      } 
+    });
     let totalAllTimeRevenue = 0;
     allApproved.forEach(req => {
-      totalAllTimeRevenue += req.certificateType === 'Marriage' ? 1000 : 500;
+      totalAllTimeRevenue += parseFloat(req.amountDue) || 0;
     });
 
     // 3. Audit Logs
@@ -209,11 +230,59 @@ const getReports = async (req, res, next) => {
       }
     });
 
+    // 4. All requests summary (for full request list in reports)
+    const allRequests = await SacramentalRequest.findAll({
+      attributes: ['id', 'fullName', 'certificateType', 'purpose', 'status', 'source', 'appointmentDate', 'createdAt', 'paymentStatus', 'amountDue'],
+      where: {
+        [Op.and]: [
+          sequelize.where(sequelize.fn('COALESCE', sequelize.col('SacramentalRequest.appointmentDate'), sequelize.col('SacramentalRequest.createdAt')), '>=', startDate),
+          sequelize.where(sequelize.fn('COALESCE', sequelize.col('SacramentalRequest.appointmentDate'), sequelize.col('SacramentalRequest.createdAt')), '<', endDate)
+        ]
+      },
+      include: [{ model: User, as: 'user', attributes: ['name', 'email'] }],
+      order: [['createdAt', 'DESC']],
+      limit: 500,
+    });
+
+    // 5. Type breakdown counts
+    const typeBreakdown = await SacramentalRequest.findAll({
+      attributes: [
+        'certificateType',
+        [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+      ],
+      where: {
+        [Op.and]: [
+          sequelize.where(sequelize.fn('COALESCE', sequelize.col('SacramentalRequest.appointmentDate'), sequelize.col('SacramentalRequest.createdAt')), '>=', startDate),
+          sequelize.where(sequelize.fn('COALESCE', sequelize.col('SacramentalRequest.appointmentDate'), sequelize.col('SacramentalRequest.createdAt')), '<', endDate)
+        ]
+      },
+      group: ['certificateType'],
+    });
+
+    const formattedRequests = allRequests.map(r => ({
+      id:              r.id,
+      fullName:        r.fullName,
+      certificateType: r.certificateType,
+      purpose:         r.purpose,
+      status:          r.status,
+      source:          r.source,
+      appointmentDate: r.appointmentDate,
+      createdAt:       r.createdAt ? r.createdAt.toISOString().split('T')[0] : '—',
+      paymentStatus:   r.paymentStatus,
+      amountDue:       parseFloat(r.amountDue) || 0,
+      userName:        r.user?.name || null,
+    }));
+
     res.json({
-      reportData: volumeData.map(d => ({ label: d.dataValues.label, value: parseInt(d.dataValues.value) })),
+      reportData: fullYearData,
       totalRevenue: totalAllTimeRevenue,
       ledger,
-      auditLogs: formattedLogs
+      auditLogs: formattedLogs,
+      allRequests: formattedRequests,
+      typeBreakdown: typeBreakdown.map(t => ({
+        type: t.dataValues.certificateType,
+        count: parseInt(t.dataValues.count),
+      })),
     });
   } catch (error) {
     next(error);
@@ -225,7 +294,7 @@ const getCalendarAppointments = async (req, res, next) => {
   try {
     const appointments = await SacramentalRequest.findAll({
       where: { appointmentDate: { [Op.not]: null } },
-      attributes: ['id', 'appointmentDate', 'appointmentTime', 'certificateType', 'source', 'status', 'conflictResolved'],
+      attributes: ['id', 'appointmentDate', 'appointmentTime', 'certificateType', 'fullName', 'purpose', 'notes', 'contactNumber', 'source', 'status', 'conflictResolved'],
     });
 
     const blockedDatesData = await BlockedDate.findAll({
@@ -252,11 +321,16 @@ const getCalendarAppointments = async (req, res, next) => {
       formatted.push({
         id: a.id,
         date: a.appointmentDate,
-        time: a.appointmentTime ? a.appointmentTime.substring(0,5) : '12:00', // Basic formatting
+        time: a.appointmentTime ? a.appointmentTime.substring(0,5) : '12:00',
         type: a.certificateType,
+        fullName: a.fullName,
+        purpose: a.purpose,
+        notes: a.notes,
+        contactNumber: a.contactNumber,
         source: a.source === 'kiosk' ? 'Kiosk' : 'Web',
         conflict,
-        status: a.status
+        status: a.status,
+        conflictResolved: a.conflictResolved
       });
     });
 

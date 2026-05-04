@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import SmartQLogo from '../components/common/SmartQLogo';
 import useAuth from '../hooks/useAuth';
+import axiosInstance from '../api/axiosInstance';
 
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
 const today = new Date();
@@ -15,9 +16,8 @@ function getFirstDayOfMonth(year, month) {
   return new Date(year, month, 1).getDay(); // 0 = Sunday
 }
 
-// Simulate blocked dates: every 1st Sunday = Pro Populo; also some past dates
-const PRO_POPULO_DAYS = [4]; // day numbers in month that are "Pro Populo"
-const PAST_CUTOFF     = today.getDate() + 2; // must be 48h ahead
+// Dates must be at least 48h ahead
+const PAST_CUTOFF = today.getDate() + 2;
 
 const INTENTION_TYPES = [
   { value: 'deceased',     label: '† Deceased (Soul / In Memoriam)' },
@@ -27,12 +27,12 @@ const INTENTION_TYPES = [
 ];
 
 const MASS_TIMES = [
-  { value: '0600', label: '6:00 AM', blocked: false },
-  { value: '0800', label: '8:00 AM (Sundays only)', blocked: false },
-  { value: '1000', label: '10:00 AM (Sundays only)', blocked: false },
-  { value: '1500', label: '3:00 PM (Sundays only)',  blocked: false },
-  { value: '1630', label: '4:30 PM (Sundays only)',  blocked: false },
-  { value: '1800', label: '6:00 PM', blocked: false },
+  { value: '06:00', label: '6:00 AM' },
+  { value: '08:00', label: '8:00 AM (Sundays only)' },
+  { value: '10:00', label: '10:00 AM (Sundays only)' },
+  { value: '15:00', label: '3:00 PM (Sundays only)' },
+  { value: '16:30', label: '4:30 PM (Sundays only)' },
+  { value: '18:00', label: '6:00 PM' },
 ];
 
 const MONTH_NAMES = [
@@ -49,25 +49,28 @@ export default function MassIntentionPage() {
   const [form, setForm] = useState({
     intentionType: '',
     recipientName: '',
-    massDate: null,        // day number
-    massTime: '',
-    requesterName: '',
+    massDay:   null,   // day number (1-31)
+    massMonth: null,   // 0-indexed month
+    massYear:  null,
+    massTime:  '',
+    requesterName: user?.name || '',
     contactInfo: '',
     physicalCard: false,
     priestNote: '',
   });
   const [submitted, setSubmitted] = useState(false);
+  const [submittedName, setSubmittedName] = useState('');
   const [viewMonth, setViewMonth] = useState(MONTH);
   const [viewYear,  setViewYear]  = useState(YEAR);
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors]       = useState({});
+  const [loading, setLoading]     = useState(false);
+  const [apiError, setApiError]   = useState('');
 
-  const daysInMonth  = getDaysInMonth(viewYear, viewMonth);
-  const firstDay     = getFirstDayOfMonth(viewYear, viewMonth);
+  const daysInMonth = getDaysInMonth(viewYear, viewMonth);
+  const firstDay    = getFirstDayOfMonth(viewYear, viewMonth);
 
   function isDayBlocked(day) {
-    // Block past + less-than-48h days (same month only)
     if (viewYear === YEAR && viewMonth === MONTH && day < PAST_CUTOFF) return 'past';
-    if (PRO_POPULO_DAYS.includes(day)) return 'pro-populo';
     return false;
   }
 
@@ -78,36 +81,68 @@ export default function MassIntentionPage() {
 
   function validate() {
     const e = {};
-    if (!form.intentionType)  e.intentionType  = 'Please select an intention type.';
-    if (!form.recipientName.trim()) e.recipientName = "Please enter the recipient's name.";
-    if (!form.massDate)        e.massDate       = 'Please select a Mass date.';
-    if (!form.massTime)        e.massTime       = 'Please select a Mass time.';
-    if (!form.requesterName.trim()) e.requesterName = 'Please enter your full name.';
-    if (!form.contactInfo.trim())   e.contactInfo   = 'Please enter your email or phone.';
+    if (!form.intentionType)        e.intentionType  = 'Please select an intention type.';
+    if (!form.recipientName.trim()) e.recipientName  = "Please enter the recipient's name.";
+    if (!form.massDay)              e.massDate       = 'Please select a Mass date.';
+    if (!form.massTime)             e.massTime       = 'Please select a Mass time.';
+    if (!form.requesterName.trim()) e.requesterName  = 'Please enter your full name.';
+    if (!form.contactInfo.trim())   e.contactInfo    = 'Please enter your email or phone.';
     return e;
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-    if (!user) {
-      navigate('/login');
-      return;
-    }
+    if (!user) { navigate('/login'); return; }
+
     const errs = validate();
     if (Object.keys(errs).length) { setErrors(errs); return; }
-    setSubmitted(true);
+
+    // Build the appointment date string YYYY-MM-DD
+    const month  = String(viewMonth + 1).padStart(2, '0');
+    const day    = String(form.massDay).padStart(2, '0');
+    const apptDate = `${viewYear}-${month}-${day}`;
+
+    // Build notes string
+    const intentionLabel = INTENTION_TYPES.find(t => t.value === form.intentionType)?.label || form.intentionType;
+    const notes = [
+      `Intention Type: ${intentionLabel}`,
+      `Requester: ${form.requesterName} (${form.contactInfo})`,
+      form.physicalCard ? 'Physical Mass Card Requested' : '',
+      form.priestNote   ? `Priest Note: ${form.priestNote}` : '',
+    ].filter(Boolean).join('\n');
+
+    setLoading(true);
+    setApiError('');
+    try {
+      await axiosInstance.post('/requests', {
+        fullName:        form.recipientName,
+        certificateType: 'Mass Intention',
+        purpose:         form.intentionType,
+        contactNumber:   form.contactInfo,
+        appointmentDate: apptDate,
+        appointmentTime: form.massTime,
+        notes,
+        source: 'online',
+      });
+      setSubmittedName(form.recipientName);
+      setSubmitted(true);
+    } catch (err) {
+      setApiError(err.response?.data?.message || 'Submission failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   /* ── Calendar nav ─────────────────────────────────────────────────────── */
   function prevMonth() {
     if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
     else setViewMonth(m => m - 1);
-    set('massDate', null); set('massTime', '');
+    set('massDay', null); set('massTime', '');
   }
   function nextMonth() {
     if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); }
     else setViewMonth(m => m + 1);
-    set('massDate', null); set('massTime', '');
+    set('massDay', null); set('massTime', '');
   }
 
   /* ── Success screen ───────────────────────────────────────────────────── */
@@ -126,7 +161,6 @@ export default function MassIntentionPage() {
         </header>
 
         <div className="flex flex-1 items-center justify-center bg-panel-right relative overflow-hidden">
-          {/* watermark */}
           <span className="pointer-events-none select-none absolute bottom-[-40px] right-[-30px] font-head font-bold text-[260px] leading-none tracking-[-8px] text-[rgba(180,140,100,0.07)] z-0">SMARTQ</span>
 
           <div className="relative z-10 text-center bg-white/80 backdrop-blur border border-cream-300 rounded-2xl shadow-xl p-16 max-w-lg mx-auto">
@@ -137,7 +171,7 @@ export default function MassIntentionPage() {
             </div>
             <h1 className="font-head text-3xl font-bold text-burgundy-900 uppercase tracking-widest mb-3">Request Submitted</h1>
             <p className="text-gray-600 text-base mb-2">
-              Your Mass intention for <strong className="text-burgundy-800">{form.recipientName}</strong> has been received.
+              Your Mass intention for <strong className="text-burgundy-800">{submittedName}</strong> has been received.
             </p>
             <p className="text-gray-500 text-sm mb-8 italic">
               You will receive a confirmation via {form.contactInfo.includes('@') ? 'email' : 'SMS'} within 24 hours.
@@ -148,7 +182,13 @@ export default function MassIntentionPage() {
               </p>
             )}
             <div className="flex gap-4 justify-center">
-              <button onClick={() => { setSubmitted(false); setForm({ intentionType:'', recipientName:'', massDate:null, massTime:'', requesterName:'', contactInfo:'', physicalCard:false, priestNote:'' }); }} className="btn-secondary py-3 px-8">
+              <button
+                onClick={() => {
+                  setSubmitted(false);
+                  setForm({ intentionType:'', recipientName:'', massDay:null, massMonth:null, massYear:null, massTime:'', requesterName: user?.name || '', contactInfo:'', physicalCard:false, priestNote:'' });
+                }}
+                className="btn-secondary py-3 px-8"
+              >
                 New Request
               </button>
               <Link to="/" className="btn-primary py-3 px-8 font-bold">Return Home</Link>
@@ -247,10 +287,9 @@ export default function MassIntentionPage() {
                 ✝ The Tradition of Mass Intentions
               </h2>
               <p className="text-gray-700 text-base leading-relaxed max-w-3xl mx-auto">
-                Offering a Mass intention is one of the most profound acts of prayer in the Catholic faith. By dedicating a 
-                Holy Mass for a loved one — living or deceased — the faithful unite their intercessions with the sacrifice of 
-                Christ on the altar. This sacred tradition, rooted in the theology of the Communion of Saints, allows graces 
-                to flow to those for whom the Mass is offered.
+                Offering a Mass intention is one of the most profound acts of prayer in the Catholic faith. By dedicating a
+                Holy Mass for a loved one — living or deceased — the faithful unite their intercessions with the sacrifice of
+                Christ on the altar.
               </p>
               <div className="mt-5 text-sm italic text-burgundy-700 font-medium">
                 "The Mass is the most perfect form of prayer." — Pope Paul VI
@@ -261,12 +300,13 @@ export default function MassIntentionPage() {
             <div className="alert-info flex items-start gap-3 mb-8 rounded-xl border-l-4 border-l-burgundy-700 px-5 py-4">
               <span className="text-burgundy-700 text-xl shrink-0 mt-0.5">⏰</span>
               <p className="text-burgundy-800 text-sm italic leading-relaxed">
-                <strong className="not-italic font-bold">Note:</strong> Online requests must be submitted at least 
-                <strong className="not-italic"> 48 hours prior</strong> to the Mass time for inclusion in the 
-                printed liturgy list. Requests submitted after this window will be carried over to the next 
-                available Mass.
+                <strong className="not-italic font-bold">Note:</strong> Online requests must be submitted at least
+                <strong className="not-italic"> 48 hours prior</strong> to the Mass time for inclusion in the
+                printed liturgy list.
               </p>
             </div>
+
+            {apiError && <div className="alert-error mb-6">{apiError}</div>}
 
             {/* ── Central Form Container ────────────────────────────────────── */}
             <form
@@ -342,14 +382,17 @@ export default function MassIntentionPage() {
                     {Array.from({ length: firstDay }).map((_, i) => <div key={`e-${i}`} />)}
                     {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
                       const blocked = isDayBlocked(day);
-                      const isSelected = form.massDate === day && viewMonth === MONTH;
+                      const isSelected = form.massDay === day && viewMonth === (form.massMonth ?? viewMonth) && viewYear === (form.massYear ?? viewYear);
                       return (
                         <button
                           key={day}
                           type="button"
                           disabled={!!blocked}
-                          title={blocked === 'pro-populo' ? 'Pro Populo — For the People (not available)' : blocked === 'past' ? 'Must be 48h in advance' : ''}
-                          onClick={() => { set('massDate', day); set('massTime', ''); }}
+                          title={blocked === 'past' ? 'Must be 48h in advance' : ''}
+                          onClick={() => {
+                            set('massDay', day);
+                            setForm(f => ({ ...f, massDay: day, massMonth: viewMonth, massYear: viewYear, massTime: '' }));
+                          }}
                           className={`
                             mx-auto w-9 h-9 rounded-full text-sm font-medium flex items-center justify-center
                             transition-all duration-150 select-none
@@ -371,14 +414,14 @@ export default function MassIntentionPage() {
                   <div className="mt-4 flex gap-4 flex-wrap text-[11px] text-gray-500">
                     <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-burgundy-700 inline-block" />Selected</span>
                     <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-cream-300 inline-block" />Available</span>
-                    <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-gray-200 inline-block" />Unavailable / Pro Populo</span>
+                    <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-gray-200 inline-block" />Unavailable</span>
                   </div>
                 </div>
 
                 {/* Mass Time Selector */}
                 <div className="flex flex-col gap-3">
                   <p className="text-sm font-semibold text-burgundy-800 uppercase tracking-wide mb-1">Select Mass Time</p>
-                  {form.massDate ? (
+                  {form.massDay ? (
                     MASS_TIMES.map(t => {
                       const selected = form.massTime === t.value;
                       return (
@@ -466,7 +509,7 @@ export default function MassIntentionPage() {
                   id="priest-note"
                   className="form-input resize-none"
                   rows={3}
-                  placeholder="e.g. 'Safe travel to Canada', 'Successful surgery for Lola Nena', 'Thanksgiving for 50th wedding anniversary'…"
+                  placeholder="e.g. 'Safe travel to Canada', 'Successful surgery for Lola Nena'…"
                   value={form.priestNote}
                   onChange={e => set('priestNote', e.target.value)}
                 />
@@ -479,10 +522,11 @@ export default function MassIntentionPage() {
                 <button
                   type="submit"
                   id="mass-intention-submit"
+                  disabled={loading}
                   className="btn-primary text-base font-bold py-4 px-12 shadow-lg"
                   style={{ fontSize: '1rem', letterSpacing: '0.05em' }}
                 >
-                  Submit Request →
+                  {loading ? 'Submitting…' : 'Submit Request →'}
                 </button>
               </div>
             </form>

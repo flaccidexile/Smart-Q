@@ -13,7 +13,7 @@ const SacramentalRequest = sequelize.define('SacramentalRequest', {
     validate: { notEmpty: true },
   },
   certificateType: {
-    type: DataTypes.ENUM('Baptismal', 'Confirmation', 'Marriage', 'Death'),
+    type: DataTypes.ENUM('Baptismal', 'Confirmation', 'Marriage', 'Death', 'Mass Intention', 'Appointment'),
     allowNull: false,
   },
   purpose: {

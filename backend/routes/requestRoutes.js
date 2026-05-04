@@ -14,7 +14,7 @@ const {
 const requestValidation = [
   body('fullName').trim().notEmpty().withMessage('Full name is required.'),
   body('certificateType')
-    .isIn(['Baptismal', 'Confirmation', 'Marriage', 'Death'])
+    .isIn(['Baptismal', 'Confirmation', 'Marriage', 'Death', 'Mass Intention', 'Appointment'])
     .withMessage('Invalid certificate type.'),
 ];
 

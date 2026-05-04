@@ -4,20 +4,6 @@ import axiosInstance from '../../api/axiosInstance';
 import SmartQLogo from '../../components/common/SmartQLogo';
 import useAuth from '../../hooks/useAuth';
 
-/* ── Mock Mass Intention dates (sync with MassIntentionsView) ────────────── */
-const MOCK_MASS_INTENTIONS = [
-  { date: '2026-05-10', time: '6:00 AM',  recipientName: 'Lolo Jose Santos',     intentionType: 'deceased'    },
-  { date: '2026-05-11', time: '6:00 PM',  recipientName: 'Ana Reyes',            intentionType: 'healing'     },
-  { date: '2026-05-15', time: '8:00 AM',  recipientName: 'The Dela Cruz Family', intentionType: 'birthday'    },
-  { date: '2026-05-18', time: '10:00 AM', recipientName: 'St. Joseph Youth',     intentionType: 'thanksgiving'},
-];
-
-const INTENTION_COLORS = {
-  deceased:     'bg-gray-600',
-  healing:      'bg-blue-500',
-  birthday:     'bg-purple-500',
-  thanksgiving: 'bg-green-600',
-};
 
 export default function CalendarPage() {
   const { user, logout } = useAuth();
@@ -30,6 +16,7 @@ export default function CalendarPage() {
   const [blockedDates, setBlockedDates] = useState(new Set());
   const [lastResolvedIds, setLastResolvedIds] = useState(null); // For undo
   const [successMsg, setSuccessMsg]     = useState('');
+  const [selectedIntention, setSelectedIntention] = useState(null); // for detail modal
 
   const fetchCalendar = async () => {
     try {
@@ -89,10 +76,21 @@ export default function CalendarPage() {
     try {
       await axiosInstance.post('/admin/calendar/resolve', { ids, resolve: true });
       setLastResolvedIds(ids);
-      setAppointments(prev => prev.map(a => ids.includes(a.id) ? { ...a, conflictResolved: true } : a));
+      await fetchCalendar();
       flash(`${ids.length} conflict(s) marked as resolved.`);
     } catch (error) {
       alert('Failed to resolve conflicts.');
+    }
+  };
+
+  const handleResolveSingleConflict = async (id) => {
+    if (!window.confirm('Are you sure you want to completely remove this appointment to resolve the conflict?')) return;
+    try {
+      await axiosInstance.delete(`/admin/requests/${id}`);
+      await fetchCalendar();
+      flash(`Appointment removed and conflict resolved.`);
+    } catch (error) {
+      alert('Failed to remove appointment.');
     }
   };
 
@@ -100,8 +98,8 @@ export default function CalendarPage() {
     if (!lastResolvedIds || lastResolvedIds.length === 0) return;
     try {
       await axiosInstance.post('/admin/calendar/resolve', { ids: lastResolvedIds, resolve: false });
-      setAppointments(prev => prev.map(a => lastResolvedIds.includes(a.id) ? { ...a, conflictResolved: false } : a));
       setLastResolvedIds(null);
+      await fetchCalendar();
       flash(`Undo successful. Conflicts restored.`);
     } catch (error) {
       alert('Failed to undo resolve.');
@@ -111,19 +109,48 @@ export default function CalendarPage() {
   const flash = (msg) => { setSuccessMsg(msg); setTimeout(() => setSuccessMsg(''), 3500); };
 
   /* ── Build a map: dateKey → {appointments[], massIntentions[]} ─────────── */
+  const INTENTION_LABELS = {
+    deceased:     '† Deceased / In Memoriam',
+    healing:      '🙏 Healing / Sick',
+    birthday:     '🎂 Birthday / Anniversary',
+    thanksgiving: '✨ Special Petition / Thanksgiving',
+  };
+
   const dayData = {};
   appointments
     .filter(a => !a.conflictResolved)
     .forEach(a => {
       if (!dayData[a.date]) dayData[a.date] = { apps: [], intentions: [] };
-      dayData[a.date].apps.push(a);
+      if (a.type === 'Mass Intention') {
+        // Parse requester info from notes
+        const noteLines   = (a.notes || '').split('\n');
+        const reqLine     = noteLines.find(l => l.startsWith('Requester:')) || '';
+        const priestLine  = noteLines.find(l => l.startsWith('Priest Note:')) || '';
+        const physLine    = noteLines.find(l => l.includes('Physical Mass Card')) || '';
+        const reqRaw      = reqLine.replace('Requester:', '').trim();
+        const parenIdx    = reqRaw.lastIndexOf('(');
+        const requesterName = parenIdx > 0 ? reqRaw.substring(0, parenIdx).trim() : reqRaw;
+        const contactInfo   = parenIdx > 0 ? reqRaw.substring(parenIdx + 1).replace(')', '').trim() : (a.contactNumber || '');
+
+        dayData[a.date].intentions.push({
+          id:             a.id,
+          time:           a.time,
+          recipientName:  a.fullName || 'Mass Intention',
+          intentionType:  a.purpose || '',
+          requesterName,
+          contactInfo,
+          priestNote:     priestLine.replace('Priest Note:', '').trim(),
+          physicalCard:   !!physLine,
+          status:         a.status,
+          conflict:       a.conflict,
+        });
+      } else {
+        dayData[a.date].apps.push(a);
+      }
     });
-  MOCK_MASS_INTENTIONS.forEach(m => {
-    if (!dayData[m.date]) dayData[m.date] = { apps: [], intentions: [] };
-    dayData[m.date].intentions.push(m);
-  });
 
   return (
+    <>
     <div className="min-h-screen flex flex-col bg-panel-right">
 
       <div className="sys-header flex items-center justify-between">
@@ -319,17 +346,17 @@ export default function CalendarPage() {
                           <div className="absolute inset-0 bg-red-100/30 pointer-events-none border-2 border-red-400/50" />
                         )}
 
-                        {/* Appointment dots */}
+                        {/* Appointment & event dots */}
                         <div className="space-y-0.5">
                           {data.apps.map((a, idx) => (
                             <div
                               key={`a-${idx}`}
-                              title={`#${a.id}: ${a.time} - ${a.type}`}
+                              title={`#${a.id}: ${a.time} - ${a.type} — ${a.fullName || ''}`}
                               className={`text-[10px] px-1 py-0.5 rounded-sm text-white font-bold truncate ${
                                 a.conflict ? 'bg-red-500 animate-pulse' : a.source === 'Web' ? 'bg-blue-500' : 'bg-purple-500'
                               }`}
                             >
-                              {a.time} {a.type}
+                              {a.time} {a.fullName ? a.fullName.split(' ')[0] : a.type}
                             </div>
                           ))}
 
@@ -338,9 +365,9 @@ export default function CalendarPage() {
                             <div
                               key={`m-${idx}`}
                               title={`✝ Mass Intention: ${m.recipientName} @ ${m.time}`}
-                              className={`text-[10px] px-1 py-0.5 rounded-sm text-white font-bold truncate ${INTENTION_COLORS[m.intentionType] || 'bg-gray-500'}`}
+                              className="text-[10px] px-1 py-0.5 rounded-sm text-white font-bold truncate bg-gray-600"
                             >
-                              ✝ {m.time}
+                              ✝ {m.recipientName ? m.recipientName.split(' ')[0] : m.time}
                             </div>
                           ))}
                         </div>
@@ -360,14 +387,44 @@ export default function CalendarPage() {
                       📅 {selectedDay}
                     </h3>
                     <div className="space-y-2">
+                      {/* Appointments */}
                       {(dayData[selectedDay]?.apps || []).map((a, i) => (
-                        <div key={i} className={`text-xs p-2 rounded font-semibold text-white ${a.conflict ? 'bg-red-500' : a.source === 'Web' ? 'bg-blue-500' : 'bg-purple-500'}`}>
-                          {a.time} — {a.type} ({a.source})
+                        <div key={i} className={`text-xs p-2 rounded font-semibold text-white flex justify-between items-center ${a.conflict ? 'bg-red-500' : a.source === 'Web' ? 'bg-blue-500' : 'bg-purple-500'}`}>
+                          <div>
+                            <p className="font-bold">{a.time} — {a.type}</p>
+                            <p className="font-normal opacity-90">{a.fullName || ''} · {a.source}</p>
+                          </div>
+                          {a.conflict && (
+                            <button
+                              onClick={() => handleResolveSingleConflict(a.id)}
+                              className="bg-white/20 hover:bg-white/40 px-2 py-1 rounded text-[10px] uppercase ml-2 transition-colors shrink-0"
+                            >
+                              Remove
+                            </button>
+                          )}
                         </div>
                       ))}
+
+                      {/* Mass Intentions — rich cards */}
                       {(dayData[selectedDay]?.intentions || []).map((m, i) => (
-                        <div key={i} className={`text-xs p-2 rounded font-semibold text-white ${INTENTION_COLORS[m.intentionType] || 'bg-gray-500'}`}>
-                          ✝ {m.time} — {m.recipientName}
+                        <div key={i} className="bg-gray-700 rounded p-2 text-white">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-bold">✝ {m.time} — {m.recipientName}</p>
+                              <p className="text-[11px] opacity-80 mt-0.5">
+                                {INTENTION_LABELS[m.intentionType] || m.intentionType || 'Mass Intention'}
+                              </p>
+                              {m.requesterName && (
+                                <p className="text-[10px] opacity-70 mt-0.5">By: {m.requesterName}</p>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => setSelectedIntention(m)}
+                              className="shrink-0 text-[10px] bg-white/20 hover:bg-white/40 px-2 py-1 rounded uppercase font-bold transition-colors"
+                            >
+                              Details
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -421,5 +478,80 @@ export default function CalendarPage() {
         </main>
       </div>
     </div>
+
+    {/* ── Mass Intention Detail Modal ─────────────────────────────────── */}
+    {selectedIntention && (
+      <div
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        onClick={() => setSelectedIntention(null)}
+      >
+        <div
+          className="bg-white border border-cream-300 rounded-2xl shadow-2xl w-full max-w-md animate-slide-up"
+          onClick={e => e.stopPropagation()}
+        >
+          {/* Modal Header */}
+          <div className="bg-gray-800 rounded-t-2xl px-6 py-4">
+            <p className="text-cream-400 text-xs font-bold uppercase tracking-widest mb-1">Mass Intention</p>
+            <h2 className="font-head text-cream-100 font-bold text-xl">
+              ✝ {selectedIntention.recipientName}
+            </h2>
+            <p className="text-gray-400 text-sm mt-0.5">{selectedIntention.time}</p>
+          </div>
+
+          {/* Details grid */}
+          <div className="p-6 space-y-3">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Intention Type</p>
+                <p className="text-burgundy-900 font-semibold text-sm mt-0.5">
+                  {INTENTION_LABELS[selectedIntention.intentionType] || selectedIntention.intentionType || '—'}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Status</p>
+                <p className="text-burgundy-900 font-semibold text-sm mt-0.5">{selectedIntention.status}</p>
+              </div>
+              {selectedIntention.requesterName && (
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Requested By</p>
+                  <p className="text-gray-800 font-semibold text-sm mt-0.5">{selectedIntention.requesterName}</p>
+                </div>
+              )}
+              {selectedIntention.contactInfo && (
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Contact</p>
+                  <p className="text-gray-800 font-semibold text-sm mt-0.5">{selectedIntention.contactInfo}</p>
+                </div>
+              )}
+            </div>
+
+            {selectedIntention.physicalCard && (
+              <div className="bg-cream-50 border border-cream-300 rounded-lg px-4 py-3 text-sm">
+                <span className="text-burgundy-700 font-bold">📬 Physical Mass Card Requested</span>
+                <p className="text-gray-500 text-xs mt-1">Prepare a printed Mass card for pickup at the parish office.</p>
+              </div>
+            )}
+
+            {selectedIntention.priestNote && (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Note for the Priest</p>
+                <p className="text-gray-700 text-sm italic">"{selectedIntention.priestNote}"</p>
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="px-6 pb-6">
+            <button
+              onClick={() => setSelectedIntention(null)}
+              className="btn-secondary w-full"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
