@@ -1,0 +1,35 @@
+Follow these steps in order to launch the Digital Kiosk and Online Application system:
+ 
+
+
+STEP 1: START FRONTEND Open the Terminal.
+
+- Type: " cd frontend " then enter.
+
+- Then type: " npm run dev " then enter.
+
+- Click the localhost link provided in the terminal (e.g., http://localhost:5173) or copy and paste it into your browser.
+
+
+
+STEP 2: ACTIVATE DATABASE (XAMPP) Open the XAMPP Control Panel. Start Apache and MySQL.
+
+Note: This must be running before the backend can connect to the database.
+
+
+
+STEP 3: START BACKEND
+
+
+- click the terminal then Ctrl + C
+
+- Then type: " cd ../backend " then enter. (THE ../ IS INCLUDED)
+
+- Then type: " npm start " then enter.
+
+
+USER Email and Password:		ADMIN Email and Password:
+
+- user@gmail.com			- admin@smartq.com
+	
+- user123				- Admin@1234

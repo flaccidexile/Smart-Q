@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axiosInstance from '../api/axiosInstance';
 import SmartQLogo from '../components/common/SmartQLogo';
+import GCashQR from '../components/common/GCashQR';
 import useAuth from '../hooks/useAuth';
 
 const STEPS = ['Personal Info', 'Certificate Details', 'Upload Documents', 'Payment Method', 'Review & Submit'];
@@ -227,11 +228,7 @@ export default function CertificateRequestPage() {
                       <p className="font-bold text-burgundy-900 mb-2">GCash Payment Details</p>
                       <p className="text-gray-600 mb-4">Please send <strong>₱{CERT_PRICES[form.certificateType]}</strong> to:</p>
                       <div className="bg-cream-50 p-6 rounded-xl border border-cream-200 mb-6 flex flex-col items-center justify-center">
-                        <img 
-                          src="/gcashqr.jfif" 
-                          alt="GCash / InstaPay QR Code" 
-                          className="w-48 h-48 mb-3 rounded-lg border border-gray-200 shadow-sm object-contain"
-                        />
+                        <GCashQR width={192} className="mb-3 rounded-lg border border-gray-200 shadow-sm" />
                         <p className="font-bold text-burgundy-900 text-lg">Scan to Pay</p>
                         <p className="text-xs text-gray-500 uppercase tracking-widest mt-1">Smart Q Parish via GCash/InstaPay</p>
                       </div>
